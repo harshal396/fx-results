@@ -1,0 +1,234 @@
+ Container fx-agents-fxagents-run-abc39e336595 Creating 
+ Container fx-agents-fxagents-run-abc39e336595 Created 
+Downloading 3 years of candles from OANDA practice (read-only)...
+  15m  XAUUSD    70752 candles  2023-10-15 -> 2026-10-12
+  15m  NDQ       70571 candles  2023-10-15 -> 2026-10-12
+  15m  US30      70576 candles  2023-10-15 -> 2026-10-12
+  1h   XAUUSD    19191 candles  2023-07-16 -> 2026-10-12
+  1h   NDQ       19143 candles  2023-07-16 -> 2026-10-12
+  1h   US30      19142 candles  2023-07-16 -> 2026-10-12
+  4h   XAUUSD     4629 candles  2023-10-15 -> 2026-10-12
+  4h   NDQ        4614 candles  2023-10-15 -> 2026-10-12
+  4h   US30       4614 candles  2023-10-15 -> 2026-10-12
+
+Note: 1-day entries are not tested - the daily candle closes at 17:00 New York, outside your 20:00-11:00
+entry window. The daily chart is still used inside the trend filter.
+
+================================================================================================
+TIMEFRAME 15m   (tested as if it were the only timeframe you traded; gold, NDQ, US30 share one account)
+================================================================================================
+Signal funnel: 20506 raw signals -> removed by chop filter 4072, against the trend 9447, outside 20:00-11:00 1836,
+  already in a trade 1411, stop too wide 1377, too small for this account 8 -> 2355 trades taken
+
+Whole period 2023-10-16 -> 2026-10-12: 2355 trades, win rate 23%, result -689 CAD on 2,000 (end 1,311), profit factor 0.83
+  worst drop -829 CAD (-41%), average per trade -0.29 CAD
+  held overnight: 3% of trades, median time in a trade 1.5 h, financing paid -26 CAD, stops jumped by a gap: 1
+  by quarter of the period: -440  -128  -153  +32
+  by year: 2023: -323  2024: -224  2025: -171  2026: +28
+  build part (first 2/3): 1583 trades -751   |   untouched last 1/3: 772 trades +62
+
+VERDICT (rules fixed before the test):
+  [PASS] at least 80 trades
+  [PASS] positive on the untouched last third
+  [FAIL] positive in at least 3 of 4 quarters
+  [FAIL] profit factor above 1.2
+  [FAIL] still positive without the 3 best trades
+  => DOES NOT PASS
+
+DIAGNOSTICS - build part only (the last third stays untouched for testing refinements)
+  Results by entry type:
+    golden long               48 trades  win  23%  net      -11  per trade   -0.24
+    golden short              38 trades  win  18%  net      -55  per trade   -1.43
+    silver long             1205 trades  win  22%  net     -634  per trade   -0.53
+    silver short             292 trades  win  23%  net      -51  per trade   -0.18
+  By market:
+    NDQ                      496 trades  win  23%  net     -206  per trade   -0.41
+    US30                     506 trades  win  20%  net     -364  per trade   -0.72
+    XAUUSD                   581 trades  win  23%  net     -181  per trade   -0.31
+  By entry time:
+    20-21                    150 trades  win  27%  net      -56  per trade   -0.38
+    21-00                    295 trades  win  27%  net      +23  per trade   +0.08
+    00-03                    348 trades  win  24%  net      -94  per trade   -0.27
+    03-06                    294 trades  win  17%  net     -278  per trade   -0.94
+    06-09                    322 trades  win  16%  net     -301  per trade   -0.93
+    09-11                    174 trades  win  25%  net      -45  per trade   -0.26
+  By weekday:
+    Sun                       71 trades  win  21%  net      -35  per trade   -0.49
+    Mon                      326 trades  win  27%  net      -20  per trade   -0.06
+    Tue                      305 trades  win  23%  net      -37  per trade   -0.12
+    Wed                      339 trades  win  19%  net     -302  per trade   -0.89
+    Thu                      327 trades  win  20%  net     -230  per trade   -0.70
+    Fri                      215 trades  win  20%  net     -127  per trade   -0.59
+  By time in the trade:
+    < 4 hours               1275 trades  win   6%  net   -2,697  per trade   -2.12
+    4-24 hours               301 trades  win  87%  net   +1,811  per trade   +6.02
+    1-3 days                   6 trades  win 100%  net     +105  per trade  +17.46
+    > 3 days                   1 trades  win 100%  net      +31  per trade  +30.59
+  By distance from the 21 EMA at entry:
+    <0.5 ATR                 199 trades  win  21%  net      -86  per trade   -0.43
+    0.5-1 ATR                829 trades  win  21%  net     -400  per trade   -0.48
+    1-1.5 ATR                442 trades  win  26%  net      -53  per trade   -0.12
+    >1.5 ATR                 113 trades  win  16%  net     -212  per trade   -1.87
+  By how trades ended:
+    closed past 21 EMA      1290 trades  win  27%  net     +319  per trade   +0.25
+    stop                     293 trades  win   0%  net   -1,070  per trade   -3.65
+
+WHY YOU LOST - 1229 losing trades, -2,851 CAD in the build part:
+    never got going, closed past the EMA          584 trades    -1,188 CAD  (42% of losses)
+    was +0.5R or better, then gave it back        388 trades      -747 CAD  (26% of losses)
+    stopped out within 3 candles (bad entry)      175 trades      -603 CAD  (21% of losses)
+    chased: entered > 1.5 ATR from the 21 EMA      53 trades      -191 CAD  (7% of losses)
+    other                                          29 trades      -121 CAD  (4% of losses)
+  Typical spread cost: 0.07R per trade (= 0.70 CAD at 2,000)
+
+REFINEMENT CANDIDATES (worst groups with 15+ trades; test at most 3, and keep one only if it
+also helps on the untouched last third - otherwise it is just fitting the past):
+    skip entry = silver long: lost -634 CAD over 1205 trades
+    skip distance from EMA = 0.5-1 ATR: lost -400 CAD over 829 trades
+    skip sym = US30: lost -364 CAD over 506 trades
+
+================================================================================================
+TIMEFRAME 1h   (tested as if it were the only timeframe you traded; gold, NDQ, US30 share one account)
+================================================================================================
+Signal funnel: 5277 raw signals -> removed by chop filter 957, against the trend 2165, outside 20:00-11:00 673,
+  already in a trade 441, stop too wide 283, too small for this account 1 -> 757 trades taken
+
+Whole period 2023-07-21 -> 2026-10-12: 757 trades, win rate 27%, result +193 CAD on 2,000 (end 2,193), profit factor 1.06
+  worst drop -280 CAD (-14%), average per trade +0.26 CAD
+  held overnight: 29% of trades, median time in a trade 6.0 h, financing paid -137 CAD, stops jumped by a gap: 1
+  by quarter of the period: +43  +37  -11  +124
+  by year: 2023: +14  2024: +3  2025: +16  2026: +160
+  build part (first 2/3): 491 trades -1   |   untouched last 1/3: 266 trades +194
+
+VERDICT (rules fixed before the test):
+  [PASS] at least 80 trades
+  [PASS] positive on the untouched last third
+  [PASS] positive in at least 3 of 4 quarters
+  [FAIL] profit factor above 1.2
+  [FAIL] still positive without the 3 best trades
+  => DOES NOT PASS
+
+DIAGNOSTICS - build part only (the last third stays untouched for testing refinements)
+  Results by entry type:
+    golden long               19 trades  win  21%  net      -18  per trade   -0.96
+    golden short              16 trades  win  38%  net      +83  per trade   +5.17
+    silver long              325 trades  win  28%  net     +196  per trade   +0.60
+    silver short             131 trades  win  21%  net     -262  per trade   -2.00
+  By market:
+    NDQ                      148 trades  win  25%  net      -25  per trade   -0.17
+    US30                     160 trades  win  21%  net     -107  per trade   -0.67
+    XAUUSD                   183 trades  win  32%  net     +131  per trade   +0.72
+  By entry time:
+    20-21                     16 trades  win  31%  net       -7  per trade   -0.45
+    21-00                     67 trades  win  27%  net      -20  per trade   -0.29
+    00-03                     76 trades  win  25%  net      +80  per trade   +1.05
+    03-06                    131 trades  win  21%  net     -114  per trade   -0.87
+    06-09                    103 trades  win  31%  net      +95  per trade   +0.93
+    09-11                     98 trades  win  28%  net      -35  per trade   -0.36
+  By weekday:
+    Sun                       18 trades  win  33%  net      +18  per trade   +0.98
+    Mon                       83 trades  win  28%  net     +137  per trade   +1.65
+    Tue                      115 trades  win  26%  net      -57  per trade   -0.50
+    Wed                       91 trades  win  30%  net      -22  per trade   -0.24
+    Thu                       98 trades  win  26%  net       +7  per trade   +0.07
+    Fri                       86 trades  win  21%  net      -84  per trade   -0.97
+  By time in the trade:
+    < 4 hours                174 trades  win   0%  net   -1,118  per trade   -6.42
+    4-24 hours               224 trades  win  19%  net     -694  per trade   -3.10
+    1-3 days                  67 trades  win  90%  net   +1,001  per trade  +14.93
+    > 3 days                  26 trades  win 100%  net     +810  per trade  +31.15
+  By distance from the 21 EMA at entry:
+    <0.5 ATR                  65 trades  win  26%  net      +76  per trade   +1.18
+    0.5-1 ATR                236 trades  win  24%  net     -109  per trade   -0.46
+    1-1.5 ATR                142 trades  win  30%  net      -32  per trade   -0.22
+    >1.5 ATR                  48 trades  win  25%  net      +63  per trade   +1.32
+  By how trades ended:
+    closed past 21 EMA       344 trades  win  38%  net   +1,152  per trade   +3.35
+    stop                     147 trades  win   0%  net   -1,153  per trade   -7.84
+
+WHY YOU LOST - 362 losing trades, -2,002 CAD in the build part:
+    was +0.5R or better, then gave it back        146 trades      -727 CAD  (36% of losses)
+    stopped out within 3 candles (bad entry)       74 trades      -580 CAD  (29% of losses)
+    never got going, closed past the EMA          123 trades      -551 CAD  (28% of losses)
+    other                                          10 trades       -84 CAD  (4% of losses)
+    chased: entered > 1.5 ATR from the 21 EMA       9 trades       -61 CAD  (3% of losses)
+  Typical spread cost: 0.04R per trade (= 0.38 CAD at 2,000)
+
+REFINEMENT CANDIDATES (worst groups with 15+ trades; test at most 3, and keep one only if it
+also helps on the untouched last third - otherwise it is just fitting the past):
+    skip entry = silver short: lost -262 CAD over 131 trades
+    skip hours (NY) = 03-06: lost -114 CAD over 131 trades
+    skip distance from EMA = 0.5-1 ATR: lost -109 CAD over 236 trades
+
+================================================================================================
+TIMEFRAME 4h   (tested as if it were the only timeframe you traded; gold, NDQ, US30 share one account)
+================================================================================================
+Signal funnel: 1214 raw signals -> removed by chop filter 238, against the trend 441, outside 20:00-11:00 227,
+  already in a trade 81, stop too wide 58, too small for this account 10 -> 159 trades taken
+
+Whole period 2023-11-07 -> 2026-10-12: 159 trades, win rate 24%, result -191 CAD on 2,000 (end 1,809), profit factor 0.70
+  worst drop -263 CAD (-13%), average per trade -1.20 CAD
+  held overnight: 54% of trades, median time in a trade 20.0 h, financing paid -44 CAD, stops jumped by a gap: 1
+  by quarter of the period: -3  -17  -144  -27
+  by year: 2023: +60  2024: -99  2025: -113  2026: -38
+  build part (first 2/3): 106 trades -168   |   untouched last 1/3: 53 trades -23
+
+VERDICT (rules fixed before the test):
+  [PASS] at least 80 trades
+  [FAIL] positive on the untouched last third
+  [FAIL] positive in at least 3 of 4 quarters
+  [FAIL] profit factor above 1.2
+  [FAIL] still positive without the 3 best trades
+  => DOES NOT PASS
+
+DIAGNOSTICS - build part only (the last third stays untouched for testing refinements)
+  Results by entry type:
+    golden long                2 trades  win   0%  net       -9  per trade   -4.64
+    golden short               5 trades  win   0%  net      -29  per trade   -5.78
+    silver long               63 trades  win  22%  net      -59  per trade   -0.94
+    silver short              36 trades  win  25%  net      -71  per trade   -1.96
+  By market:
+    NDQ                       34 trades  win  21%  net       -1  per trade   -0.02
+    US30                      36 trades  win  22%  net     -109  per trade   -3.04
+    XAUUSD                    36 trades  win  22%  net      -58  per trade   -1.60
+  By entry time:
+    21-00                     20 trades  win  30%  net      +10  per trade   +0.51
+    00-03                     22 trades  win  23%  net      -40  per trade   -1.80
+    03-06                     26 trades  win   8%  net     -111  per trade   -4.27
+    09-11                     38 trades  win  26%  net      -27  per trade   -0.72
+  By weekday:
+    Sun                        2 trades  win 100%  net      +19  per trade   +9.35
+    Mon                       16 trades  win  25%  net      -33  per trade   -2.08
+    Tue                       34 trades  win  18%  net     -100  per trade   -2.93
+    Wed                       22 trades  win  23%  net      -51  per trade   -2.33
+    Thu                       16 trades  win  12%  net      -28  per trade   -1.75
+    Fri                       16 trades  win  25%  net      +26  per trade   +1.61
+  By time in the trade:
+    < 4 hours                 10 trades  win   0%  net      -84  per trade   -8.43
+    4-24 hours                47 trades  win   0%  net     -282  per trade   -6.01
+    1-3 days                  21 trades  win  14%  net      -77  per trade   -3.66
+    > 3 days                  28 trades  win  71%  net     +276  per trade   +9.85
+  By distance from the 21 EMA at entry:
+    <0.5 ATR                  15 trades  win   0%  net      -94  per trade   -6.28
+    0.5-1 ATR                 46 trades  win  28%  net      +16  per trade   +0.34
+    1-1.5 ATR                 38 trades  win  24%  net      -64  per trade   -1.68
+    >1.5 ATR                   7 trades  win  14%  net      -25  per trade   -3.63
+  By how trades ended:
+    closed past 21 EMA        76 trades  win  30%  net      +96  per trade   +1.26
+    stop                      30 trades  win   0%  net     -264  per trade   -8.79
+
+WHY YOU LOST - 83 losing trades, -468 CAD in the build part:
+    stopped out within 3 candles (bad entry)       22 trades      -196 CAD  (42% of losses)
+    never got going, closed past the EMA           33 trades      -144 CAD  (31% of losses)
+    was +0.5R or better, then gave it back         26 trades      -117 CAD  (25% of losses)
+    chased: entered > 1.5 ATR from the 21 EMA       2 trades       -11 CAD  (2% of losses)
+  Typical spread cost: 0.03R per trade (= 0.27 CAD at 2,000)
+
+REFINEMENT CANDIDATES (worst groups with 15+ trades; test at most 3, and keep one only if it
+also helps on the untouched last third - otherwise it is just fitting the past):
+    skip hours (NY) = 03-06: lost -111 CAD over 26 trades
+    skip sym = US30: lost -109 CAD over 36 trades
+    skip weekday = Tue: lost -100 CAD over 34 trades
+
+Assumptions: each timeframe tested separately; costs from OANDA bid/ask candles; financing estimated at 6%/yr;
+stop assumed hit before any favourable move inside a candle; no news blackouts; results treated as CAD. Past results prove nothing.
