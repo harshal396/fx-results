@@ -1,0 +1,7 @@
+ Container fx-agents-fxagents-run-8c8555ba3ec6 Creating 
+ Container fx-agents-fxagents-run-8c8555ba3ec6 Created 
+usage: my_strategy_test.py [-h] [--years YEARS] [--equity EQUITY]
+                           [--tfs [TFS ...]] [--financing FINANCING]
+                           [--synthetic] [--selftest]
+my_strategy_test.py: error: unrecognized arguments: --sides long
+
