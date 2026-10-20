@@ -1,0 +1,52 @@
+== version (should end with my books commit on top of his latest)
+a75ad44 Merge pull request #9 from harshal396/claude/my-books-1h
+3fbfb01 Merge pull request #8 from harshal396/claude/add-trend-test-script-4rbn40
+2de12eb My two 1h books on the latest upstream code
+?? .env.save
+?? backups/
+
+== files that differ from his latest (expect exactly 6)
+ fxagents/agents/my_books.py          | 266 ++++++++++++
+ fxagents/agents/setup_first.py       |   6 +-
+ fxagents/agents/trading.py           |   3 +-
+ fxagents/dashboard/static/index.html |   8 +-
+ my_strategy_test.py                  | 787 +++++++++++++++++++++++++++++++++++
+ tests/test_my_books.py               | 189 +++++++++
+ trend_test.py                        | 295 +++++++++++++
+ 8 files changed, 1558 insertions(+), 7 deletions(-)
+
+== containers
+NAME                      STATUS
+fx-agents-cloudflared-1   Up 6 days
+fx-agents-fxagents-1      Up 8 minutes (healthy)
+
+== health
+{"ok":true} ← app healthy
+
+== books loaded
+fxagents-1  | 23:08:51 INFO  main             shadow book: playbook (virtual fills, journal /app/data/journal_shadow.sqlite)
+fxagents-1  | 23:08:51 INFO  main             shadow book: playbook_regime (virtual fills, journal /app/data/journal_playbook_regime.sqlite)
+fxagents-1  | 23:08:51 INFO  main             shadow book: h1_vol_trend (virtual fills, journal /app/data/journal_h1_vol_trend.sqlite)
+fxagents-1  | 23:08:52 INFO  main             shadow book: ema21_rsi55 (virtual fills, journal /app/data/journal_ema21_rsi55.sqlite)
+fxagents-1  | 23:08:52 INFO  main             shadow book: my_ema21_rsi_1h (virtual fills, journal /app/data/journal_my_ema21_rsi_1h.sqlite)
+fxagents-1  | 23:08:52 INFO  main             shadow book: my_rsi_mtf_1h (virtual fills, journal /app/data/journal_my_rsi_mtf_1h.sqlite)
+fxagents-1  | 23:08:52 INFO  main             mode=paper  broker=oanda  selection=hourly_pick  shadow=playbook+playbook_regime+h1_vol_trend+ema21_rsi55+my_ema21_rsi_1h+my_rsi_mtf_1h  strategies=18  jev=jev
+
+== errors in the last 3000 log lines
+0
+
+== Jev
+key present: True | length: 108
+fxagents-1  | 23:08:56 INFO  selector         XAUUSD 23:00 → ['ict_ote:15m@v1'] (trade_ok 0.79, jev)
+fxagents-1  | 23:08:56 INFO  selector         NDQ 23:00 → ['dtfx_zone:5m@v1', 'ict_fvg_sweep:15m@v1'] (trade_ok 0.72, jev)
+fxagents-1  | 23:08:56 INFO  selector         US30 23:00 → ['dtfx_zone:5m@v1', 'smc_order_block:15m@v1'] (trade_ok 0.53, jev)
+
+== activity of my two books
+fxagents-1  | 23:08:52 INFO  main             shadow book: my_ema21_rsi_1h (virtual fills, journal /app/data/journal_my_ema21_rsi_1h.sqlite)
+fxagents-1  | 23:08:52 INFO  main             shadow book: my_rsi_mtf_1h (virtual fills, journal /app/data/journal_my_rsi_mtf_1h.sqlite)
+fxagents-1  | 23:08:52 INFO  main             mode=paper  broker=oanda  selection=hourly_pick  shadow=playbook+playbook_regime+h1_vol_trend+ema21_rsi55+my_ema21_rsi_1h+my_rsi_mtf_1h  strategies=18  jev=jev
+
+== tests
+........................................................................ [ 91%]
+...........................                                              [100%]
+315 passed in 229.63s (0:03:49)
