@@ -1,0 +1,20 @@
+== git
+5204161 Merge remote-tracking branch 'upstream/main'
+35a8d90 Backtester plugin: ChatGPT's US30 H1 trend pullback, ported as written, for the 2021→Sep 2
+528b405 Candles for outside tools: fxcandles container pushes fresh mid candles to a public 'candles
+?? .env.save
+?? backups/
+markers: 0
+
+== differences from his latest (expect my_books.py, test_my_books.py, config.yaml, setup_first.py, index.html)
+ config.yaml                          |   8 +-
+ fxagents/agents/my_books.py          | 266 ++++++++++++
+ fxagents/agents/setup_first.py       |   6 +-
+ fxagents/dashboard/static/index.html |   8 +-
+ my_strategy_test.py                  | 787 +++++++++++++++++++++++++++++++++++
+ tests/test_my_books.py               | 189 +++++++++
+ trend_test.py                        | 295 +++++++++++++
+ 7 files changed, 1553 insertions(+), 6 deletions(-)
+
+== modes
+  modes: [playbook, playbook_regime, h1_vol_trend, ema21_rsi55, daily_rsi2_adx2, my_ema21_rsi_1h, my_rsi_mtf_1h]
