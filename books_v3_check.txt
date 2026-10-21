@@ -1,0 +1,37 @@
+== git
+b3abe75 My books v3: chop only, Jev partials, no hours
+4a6af44 Remove the old copy of auto_update.sh (the current one is ~/auto_update.sh)
+
+== containers
+NAME                      STATUS
+fx-agents-cloudflared-1   Up 7 days
+fx-agents-fxagents-1      Up 3 minutes (healthy)
+fx-agents-fxbt-1          Up 3 minutes
+
+== health
+{"ok":true} ← app healthy
+
+== my books loaded
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_ema_rsi_15m (virtual fills, journal /app/data/jo
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_ema_rsi_1h (virtual fills, journal /app/data/jou
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_ema_rsi_4h (virtual fills, journal /app/data/jou
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_ema_rsi_1d (virtual fills, journal /app/data/jou
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_rsi_15m (virtual fills, journal /app/data/journa
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_rsi_1h (virtual fills, journal /app/data/journal
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_rsi_4h (virtual fills, journal /app/data/journal
+fxagents-1  | 23:42:56 INFO  main             shadow book: my_ema_cross_15m (virtual fills, journal /app/data/
+fxagents-1  | 23:42:57 INFO  main             shadow book: my_ema_cross_1h (virtual fills, journal /app/data/j
+fxagents-1  | 23:42:57 INFO  main             shadow book: my_ema_cross_4h (virtual fills, journal /app/data/j
+fxagents-1  | 23:42:57 INFO  main             shadow book: my_ema_cross_1d (virtual fills, journal /app/data/j
+fxagents-1  | 23:42:57 INFO  main             shadow book: my_intraday_mom (virtual fills, journal /app/data/j
+
+== errors in the last 2000 log lines
+0
+
+== chop switch on his book
+config.yaml:1
+fxagents/agents/ema_rsi_trader.py:2
+
+== memory
+               total        used        free      shared  buff/cache   available
+Mem:            1905         785         370           2         958        1120
