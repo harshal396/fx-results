@@ -1,0 +1,10 @@
+== on GitHub but not on the server
+818fe56 2026-10-20 Merge pull request #10 from harshal396/claude/auto-update-script
+c7d6aa1 2026-10-20 Add safe auto-update script for pulling from the upstream repo
+
+== files those commits touch
+ deploy/auto_update.sh | 89 +++++++++++++++++++++++++++++++++++++++++++++++++++
+ 1 file changed, 89 insertions(+)
+
+== on the server but not on GitHub (count)
+21
