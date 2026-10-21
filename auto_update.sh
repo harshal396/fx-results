@@ -4,8 +4,8 @@
 #
 # It changes nothing unless ALL of these hold, in order:
 #   1. upstream has new commits, you are on main with no uncommitted changes, and nothing else is updating
-#   2. the merge has no conflicts, OR its only conflicts are in the three files where your books hook into his code
-#      (config.yaml, setup_first.py, index.html) - those are fixed automatically by ~/apply_my_hooks.py;
+#   2. the merge has no conflicts, OR its only conflicts are in the files where your books hook into his code
+#      (config.yaml, setup_first.py, index.html, ema_rsi_trader.py) - fixed automatically by ~/apply_my_hooks.py;
 #      any other conflict: merge undone, you get a phone alert, a human decides
 #   3. the image builds and the FULL test suite passes in a throwaway container
 #   4. the restarted bot answers /healthz and keeps answering 45 s later
@@ -19,7 +19,7 @@ REPO="${REPO:-$HOME/fx-agents}"; UP="${UP:-upstream}"; BR="${BR:-main}"; ORIGIN=
 LOG="${LOG:-$HOME/auto_update.log}"; LOCK="${LOCK:-/tmp/fx-auto-update.lock}"; DRY="${DRY:-0}"
 TEST_TIMEOUT="${TEST_TIMEOUT:-2400}"
 HOOKS="${HOOKS:-$HOME/apply_my_hooks.py}"
-HOOK_FILES="${HOOK_FILES:-config.yaml fxagents/agents/setup_first.py fxagents/dashboard/static/index.html}"
+HOOK_FILES="${HOOK_FILES:-config.yaml fxagents/agents/setup_first.py fxagents/dashboard/static/index.html fxagents/agents/ema_rsi_trader.py}"
 GIT_ID="-c user.name=auto-update -c user.email=auto-update@localhost"
 exec >>"$LOG" 2>&1
 exec 9>"$LOCK"; flock -n 9 || { echo "$(date '+%F %T') another update is running - skipped"; exit 0; }
