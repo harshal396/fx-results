@@ -31,6 +31,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
@@ -43,7 +44,10 @@ from fxagents import my_rules as M          # noqa: E402
 from fxagents.indicators import ema, rsi     # noqa: E402
 
 NY = "America/New_York"
-INST = {"XAUUSD": "XAU_USD", "NDQ": "NAS100_USD", "US30": "US30_USD"}
+INST = {"XAUUSD": "XAU_USD", "NDQ": "NAS100_USD", "US30": "US30_USD",
+        # markets the rules were never tuned on (out-of-sample check)
+        "EURUSD": "EUR_USD", "GBPUSD": "GBP_USD", "USDJPY": "USD_JPY", "AUDUSD": "AUD_USD", "USDCAD": "USD_CAD",
+        "XAGUSD": "XAG_USD", "SPX500": "SPX500_USD", "DE30": "DE30_EUR", "UK100": "UK100_GBP", "WTI": "WTICO_USD"}
 DELTA = {"15min": pd.Timedelta("15min"), "1h": pd.Timedelta("1h"), "4h": pd.Timedelta("4h"), "1D": pd.Timedelta("24h")}
 BIG, CAPATR, MINATR, BEAR = 2.5, 3.0, 0.5, 0.35
 VARIANTS = {
@@ -75,7 +79,15 @@ def fetch_ba(inst, gran, start_utc):
         q = urllib.parse.urlencode({"granularity": gran, "price": "BA", "count": 5000, "from": cur,
                                     "dailyAlignment": 17, "alignmentTimezone": "America/New_York"})
         req = urllib.request.Request(f"{host}/v3/instruments/{inst}/candles?{q}", headers={"Authorization": f"Bearer {token}"})
-        cs = json.load(urllib.request.urlopen(req, timeout=90)).get("candles", [])
+        for attempt in range(6):                                         # OANDA sometimes answers 502/504: wait and retry
+            try:
+                cs = json.load(urllib.request.urlopen(req, timeout=90)).get("candles", [])
+                break
+            except Exception as ex:                                      # noqa: BLE001
+                if attempt == 5:
+                    raise
+                print(f"  retry {attempt + 1} after {type(ex).__name__}: {ex}", file=sys.stderr, flush=True)
+                time.sleep(3 * (attempt + 1))
         for c in cs:
             if c.get("complete"):
                 b, a = c["bid"], c["ask"]
@@ -293,7 +305,11 @@ def stats(R):
     cum = np.cumsum(R); dd = float((np.maximum.accumulate(cum) - cum).max())
     gl = -R[R < 0].sum()
     rng = np.random.default_rng(1)
-    bs = rng.choice(R, size=(1000, len(R))).mean(axis=1) if len(R) >= 5 else np.array([R.mean()])
+    if len(R) >= 5:                                        # bootstrap in small batches: memory stays tiny however many trades
+        step = max(1, int(2_000_000 // len(R)))
+        bs = np.concatenate([R[rng.integers(0, len(R), size=(min(step, 600 - k), len(R)))].mean(axis=1) for k in range(0, 600, step)])
+    else:
+        bs = np.array([R.mean()])
     return dict(n=len(R), win=float((R > 0).mean()), tot=float(R.sum()), avg=float(R.mean()), pf=float(R[R > 0].sum() / gl) if gl > 0 else float("inf"),
                 dd=dd, lo=float(np.percentile(bs, 2.5)), hi=float(np.percentile(bs, 97.5)))
 
@@ -470,12 +486,14 @@ def main():
         sys.exit(0 if selftest() else 1)
     start = datetime.now(timezone.utc) - timedelta(days=int(args.years * 365))
     variants = args.variants.split(",")
-    allr = []
+    allr, problems = [], []
     for mk in args.markets.split(","):
-        print(f"fetching {mk} ...", file=sys.stderr)
-        m15 = fetch_ba(INST[mk], "M15", start)
+      try:
+        print(f"fetching {mk} ...", file=sys.stderr, flush=True)
+        tfs = args.tfs.split(",")
+        m15 = fetch_ba(INST[mk], "M15", start) if "15min" in tfs else None        # 15m data is only downloaded when asked for
         h1 = fetch_ba(INST[mk], "H1", start - timedelta(days=60))
-        h1c = h1[h1.index >= m15.index[0] - pd.Timedelta("1h")]
+        h1c = h1[h1.index >= (m15.index[0] if m15 is not None else pd.Timestamp(start).tz_convert(NY)) - pd.Timedelta("1h")]
         frames = {"15min": m15, "1h": h1c, "4h": agg_ba(h1c, "4h"), "1D": agg_ba(h1c, "1D")}
         h1m = mid(h1)
         s1h, s4h, s1d = htf_state(h1m, DELTA["1h"]), htf_state(M.build_tf(h1m, "4h")[0], DELTA["4h"]), htf_state(M.build_tf(h1m, "1D")[0], DELTA["1D"])
@@ -484,6 +502,7 @@ def main():
             ba = frames[tf]
             dm = mid(ba)
             for fam in args.families.split(","):
+              try:
                 rule = "ema_rsi" if fam == "fresh_state" else fam
                 b = M.build(dm, h1m, rule, tf)
                 raw = fresh_state_raw(b) if fam == "fresh_state" else b["raw"].to_numpy()
@@ -491,14 +510,25 @@ def main():
                 (hs, he), (hs2, he2) = htf[tf]
                 for v in variants:
                     allr += run_book(ba, b, raw, tf, VARIANTS[v], F, hs, he, mk, fam, v, hs2, he2)
-                print(f"  {mk} {tf} {fam}: done", file=sys.stderr)
+                print(f"  {mk} {tf} {fam}: done", file=sys.stderr, flush=True)
+              except Exception as ex:                                       # noqa: BLE001
+                import traceback
+                traceback.print_exc()
+                problems.append(f"{mk} {tf} {fam}: {type(ex).__name__}: {ex}")
+      except Exception as ex:                                               # noqa: BLE001
+        import traceback
+        traceback.print_exc()
+        problems.append(f"{mk}: {type(ex).__name__}: {ex}")
     if not allr:
         print("no trades produced - check the data fetch (OANDA_API_TOKEN set?)")
         return
     T = pd.DataFrame(allr)
     T["t"] = pd.to_datetime(T["t"], utc=True).dt.tz_convert(NY)
     cut = T.t.max() - pd.DateOffset(months=args.holdout_months)
-    print(report(T, variants, cut, args))
+    txt = report(T, variants, cut, args)
+    if problems:
+        txt += "\n\n## Problems during the run (these parts are missing from the tables above)\n\n" + "\n".join(f"- {p}" for p in problems)
+    print(txt)
 
 
 if __name__ == "__main__":
