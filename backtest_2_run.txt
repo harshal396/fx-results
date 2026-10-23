@@ -1,0 +1,53 @@
+ Container fx-agents-fxagents-run-8930b942973a Creating 
+ Container fx-agents-fxagents-run-8930b942973a Created 
+fetching XAUUSD ...
+  XAUUSD 15min ema_rsi: done
+  XAUUSD 15min ema_cross: done
+  XAUUSD 15min rsi_mtf: done
+  XAUUSD 15min fresh_state: done
+  XAUUSD 1h ema_rsi: done
+  XAUUSD 1h ema_cross: done
+  XAUUSD 1h rsi_mtf: done
+  XAUUSD 1h fresh_state: done
+  XAUUSD 4h ema_rsi: done
+  XAUUSD 4h ema_cross: done
+  XAUUSD 4h rsi_mtf: done
+  XAUUSD 4h fresh_state: done
+  XAUUSD 1D ema_rsi: done
+  XAUUSD 1D ema_cross: done
+  XAUUSD 1D rsi_mtf: done
+  XAUUSD 1D fresh_state: done
+fetching NDQ ...
+  NDQ 15min ema_rsi: done
+  NDQ 15min ema_cross: done
+  NDQ 15min rsi_mtf: done
+  NDQ 15min fresh_state: done
+  NDQ 1h ema_rsi: done
+  NDQ 1h ema_cross: done
+  NDQ 1h rsi_mtf: done
+  NDQ 1h fresh_state: done
+  NDQ 4h ema_rsi: done
+  NDQ 4h ema_cross: done
+  NDQ 4h rsi_mtf: done
+  NDQ 4h fresh_state: done
+  NDQ 1D ema_rsi: done
+  NDQ 1D ema_cross: done
+  NDQ 1D rsi_mtf: done
+  NDQ 1D fresh_state: done
+fetching US30 ...
+  US30 15min ema_rsi: done
+  US30 15min ema_cross: done
+  US30 15min rsi_mtf: done
+  US30 15min fresh_state: done
+  US30 1h ema_rsi: done
+  US30 1h ema_cross: done
+  US30 1h rsi_mtf: done
+  US30 1h fresh_state: done
+  US30 4h ema_rsi: done
+  US30 4h ema_cross: done
+  US30 4h rsi_mtf: done
+  US30 4h fresh_state: done
+  US30 1D ema_rsi: done
+  US30 1D ema_cross: done
+  US30 1D rsi_mtf: done
+  US30 1D fresh_state: done
