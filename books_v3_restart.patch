@@ -1,0 +1,141 @@
+diff --git a/fxagents/agents/my_books.py b/fxagents/agents/my_books.py
+index ffc9140..951f205 100644
+--- a/fxagents/agents/my_books.py
++++ b/fxagents/agents/my_books.py
+@@ -23,6 +23,7 @@ hold_overnight, which exempts them from the 15:50 session flatten); the 15m book
+ """
+ from __future__ import annotations
+ 
++import json
+ import math
+ 
+ import numpy as np
+@@ -30,7 +31,7 @@ import pandas as pd
+ 
+ from ..broker import OrderRejected
+ from ..indicators import atr
+-from ..models import Bar, Position
++from ..models import Bar, Leg, Position
+ from ..my_rules import build, build_tf
+ from ..regime import CHOP_HI
+ from .core import Agent
+@@ -80,6 +81,44 @@ class _Base(Agent):
+         self.use_hours, self.use_partials = bool(self.c["use_hours"]), bool(self.c["use_partials"])
+         self.bus.subscribe("bar_1m", self.on_bar)
+ 
++    # ── restart safety: shadow positions live in memory only, so re-open this book's trades from its journal ──
++    def adopt(self) -> int:
++        """Re-open this book's still-open trades after a restart: current stop, booked partials, events. Without this
++        a restart (an update, a reboot) would silently drop trades that are meant to be held for hours or days."""
++        try:
++            rows = [r for r in self.ctx.journal.trades(limit=100, status="open") if r.get("strategy") == self.book]
++        except Exception as e:  # noqa: BLE001
++            self.log.warning("%s: could not read open trades: %s", self.book, e)
++            return 0
++        n = 0
++        for r in rows:
++            if r["symbol"] not in self.symbols or any(p.id == r["id"] for p in self.state.positions.values()):
++                continue
++            side = 1 if r["side"] == "LONG" else -1
++            opened, entry, init_stop = pd.Timestamp(r["opened"]), float(r["entry"]), float(r["initial_stop"])
++            pos = Position(r["symbol"], side, self.book, float(r["final_stop"]), init_stop, abs(entry - init_stop), 99.0, opened,
++                           id=r["id"], reason=r.get("reason") or "", bias_mode="n/a")
++            pos.add_leg(Leg(float(r["qty_initial"]), entry, opened, "initial"))
++            try:
++                pos.events = json.loads(r.get("events") or "[]")
++            except ValueError:
++                pos.events = []
++            booked = [e for e in pos.events if e.get("kind") == "partial"]
++            if booked:                                              # partial profit already taken before the restart
++                pos.closed_qty = round(sum(float(e.get("qty", 0)) for e in booked), 6)
++                pos.partial_done = True
++                pos.meta["agent_partials"] = len(booked)
++            pos.realized = float(r.get("realized") or 0)
++            pos.meta.update(external_mgmt=True, no_pyramid=True, hold_overnight=True, max_hold=10 ** 6)
++            pos.mfe_r, pos.mae_r = float(r.get("mfe_r") or 0), float(r.get("mae_r") or 0)
++            pos.last_price = entry
++            pos.log(self.now(), "readopted", why="bot restarted; trade restored from the journal")
++            self.state.positions[pos.id] = pos
++            getattr(self.ctx.broker, "open_positions", {})[pos.id] = pos
++            self.log.info("%s: re-adopted open %s trade %s from %s", self.book, pos.symbol, pos.id, r["opened"])
++            n += 1
++        return n
++
+     def entry_allowed(self, sym: str, t: pd.Timestamp, windows: bool | None = None) -> bool:
+         windows = getattr(self, "windows", False) if windows is None else windows       # off unless use_hours
+         loc = t.tz_convert(self.cfg["timezone"]) if t.tzinfo else t
+@@ -164,6 +203,7 @@ class MyBookTrader(_Base):
+     def start(self):
+         super().start()
+         self.windows = self.use_hours and self.tf != "1D"            # the hours rule never applies to the daily books
++        self.adopt()
+ 
+     async def on_bar(self, bar: Bar):
+         self.beat()
+@@ -358,6 +398,7 @@ class MyIntradayMomTrader(_Base):
+         self.symbols = [s for s in self.c["symbols"] if s in self.cfg["instruments"]]
+         self.risk_pct = float(self.c["risk_pct"])
+         self.done: set = set()
++        self.adopt()
+ 
+     def first_half_hour_return(self, sym: str, loc: pd.Timestamp):
+         """(return, previous close, price at 10:00) or None when the data is missing."""
+diff --git a/tests/test_my_books.py b/tests/test_my_books.py
+index 8db168f..f3268d2 100644
+--- a/tests/test_my_books.py
++++ b/tests/test_my_books.py
+@@ -220,12 +220,12 @@ def prep_cfg(book, symbols, over=None):
+     return cfg
+ 
+ 
+-def make_trader(book, symbols=("XAUUSD",), over=None, jev=None):
++def make_trader(book, symbols=("XAUUSD",), over=None, jev=None, journal=None):
+     cfg = prep_cfg(book, list(symbols), over)
+     st = LiveState(); st.equity = st.day_start_equity = st.equity_peak = 2000.0
+     bus = Bus()
+     tr_cls = MyIntradayMomTrader if book == MOM else MyBookTrader
+-    tr = tr_cls(Ctx(cfg, bus, st, BarStore(TZ, max_days=5), PaperBroker(cfg, st, bus), J(), jev, None), book)
++    tr = tr_cls(Ctx(cfg, bus, st, BarStore(TZ, max_days=5), PaperBroker(cfg, st, bus), J() if journal is None else journal, jev, None), book)
+     tr.start()
+     return tr
+ 
+@@ -425,6 +425,39 @@ def test_jev_failure_cannot_break_the_book():
+     assert pos.status == "open" and not pos.partial_done
+ 
+ 
++# ───────────────────────── a restart must not drop open trades ─────────────────────────
++def test_open_trades_survive_a_restart_with_their_stop_and_partials(tmp_path):
++    from fxagents.journal import Journal
++    jr = Journal(str(tmp_path / "j.sqlite"))
++    tr = make_trader("my_ema_rsi_1h", jev=FakeJev(prob=0.2))
++    pos = open_trade(tr)
++    mult = float(tr.cfg["instruments"]["XAUUSD"]["multiplier"])
++    jr.upsert_trade(pos, mult)                                          # what the journal agent does when the trade opens
++    at_r(tr, pos, 1.3)                                                  # a Jev partial and a stop move happen ...
++    assert pos.partial_done and pos.stop > pos.initial_stop
++    jr.upsert_trade(pos, mult)                                          # ... and are written to the journal as they happen
++    other = Position("XAUUSD", 1, "ema21_rsi55", 4100.0, 4100.0, 20.0, 99.0, pd.Timestamp("2026-10-13 22:00", tz=TZ))
++    tr.ctx.broker.open_positions.clear()
++    asyncio.run(tr.ctx.broker.open(other, 1.0, 4120.0))
++    jr.upsert_trade(other, mult)                                        # another book's trade in the same journal
++    # ── restart: a fresh state and broker, the same journal ──
++    tr2 = make_trader("my_ema_rsi_1h", jev=FakeJev(prob=0.9), journal=jr)
++    back = [p for p in tr2.state.positions.values()]
++    assert len(back) == 1 and back[0].id == pos.id and back[0].strategy == "my_ema_rsi_1h"      # only this book's trade
++    q = back[0]
++    assert q.side == pos.side and q.stop == pos.stop and q.initial_stop == pos.initial_stop     # the trailed stop, not the first one
++    assert q.partial_done and q.meta["agent_partials"] == 1 and abs(q.closed_qty - pos.closed_qty) < 1e-6
++    assert abs(q.open_qty - pos.open_qty) < 1e-6 and q.entry == pos.entry and q.meta["hold_overnight"]
++    assert any(e["kind"] == "readopted" for e in q.events) and tr2.ctx.broker.open_positions[q.id] is q
++    assert tr2.adopt() == 0                                              # never adopted twice
++    # the restored trade is managed again: price falls through its stop and the broker closes what is left
++    tr2.state.now = pd.Timestamp("2026-10-14 03:00", tz=TZ)
++    asyncio.run(tr2.ctx.broker.on_bar(Bar("XAUUSD", tr2.state.now, q.entry, q.entry, q.stop - 1.0, q.stop - 1.0, 1.0)))
++    assert q.open_qty == 0
++    # a book that does not trade that market leaves the trade alone
++    assert make_trader("my_ema_rsi_1h", symbols=("NDQ",), journal=jr).state.positions == {}
++
++
+ # ───────────────────────── the chop gate on his EMA21 + RSI 55 book ─────────────────────────
+ def his_book(chop_filter):
+     from fxagents.agents.ema_rsi_trader import EmaRsiTrader

@@ -87,6 +87,30 @@ def ends(df, tf):
     return df.index.tz_convert(NY).tz_localize(None) + DELTA[tf]
 
 
+def adx(h, l, c, n=14):
+    """Wilder ADX(14), same definition as TradingView's DMI."""
+    h, l, c = (np.asarray(x, float) for x in (h, l, c))
+    up, dn = np.r_[0.0, h[1:] - h[:-1]], np.r_[0.0, l[:-1] - l[1:]]
+    pdm, mdm = np.where((up > dn) & (up > 0), up, 0.0), np.where((dn > up) & (dn > 0), dn, 0.0)
+    tr = np.r_[h[0] - l[0], np.maximum.reduce([h[1:] - l[1:], abs(h[1:] - c[:-1]), abs(l[1:] - c[:-1])])]
+    def rma(x):
+        out = np.full(len(x), np.nan)
+        if len(x) > n:
+            out[n] = x[1:n + 1].sum()
+            for i in range(n + 1, len(x)):
+                out[i] = out[i - 1] - out[i - 1] / n + x[i]
+        return out
+    a_, p_, m_ = rma(tr), rma(pdm), rma(mdm)
+    with np.errstate(invalid="ignore", divide="ignore"):
+        dx = 100 * abs(100 * p_ / a_ - 100 * m_ / a_) / (100 * p_ / a_ + 100 * m_ / a_)
+    out = np.full(len(dx), np.nan)
+    if len(dx) > 2 * n:
+        out[2 * n] = np.nanmean(dx[n + 1:2 * n + 1])
+        for i in range(2 * n + 1, len(dx)):
+            out[i] = (out[i - 1] * (n - 1) + dx[i]) / n
+    return out
+
+
 def indicators(fr, h1):
     out = {}
     for tf, df in fr.items():
@@ -94,6 +118,7 @@ def indicators(fr, h1):
             continue
         b = M.build(df, h1, "ema_rsi", tf)
         b["ema50"] = ema(df["close"], 50)
+        b["adx"] = adx(b["h"], b["l"], b["c"])
         out[tf] = b
     return out
 
@@ -127,6 +152,15 @@ def diagnose(b, i, side, tf, ind):
          "CHOP": b["chop"].iloc[i], "EMA21 side changes in last 12 candles": crosses, "Supertrend": int(b["st"].iloc[i]),
          "last 3 closes": arrows(c, i), "signal candle body / range": abs(c[i] - o[i]) / rng, "signal candle range (ATR)": rng / a[i],
          "move since the 20-candle extreme (ATR)": ext, "closed beyond the prior 10-candle extreme": bool(bos)}
+    e9 = b["ema9"].to_numpy()
+    k9 = np.sign(e9[max(i - 19, 0):i + 1] - e21[max(i - 19, 0):i + 1])
+    flips = np.where(k9[1:] != k9[:-1])[0]
+    d["ADX(14)"] = float(b["adx"].iloc[i])
+    d["EMA9 beyond EMA21 in the trade direction (ATR)"] = (e9[i] - e21[i]) * side / a[i]
+    d["EMA9/21 crossed this many candles ago"] = int(len(k9) - 1 - flips[-1]) if len(flips) else ">19"
+    d["EMA9/21 crosses in the last 20 candles"] = int(len(flips))
+    d["EMA21 slope over 8 candles in the trade direction (ATR)"] = (e21[i] - e21[max(i - 8, 0)]) * side / a[i]
+    d["RSI change over 3 candles"] = r[i] - r[max(i - 3, 0)]
     return d
 
 
@@ -217,8 +251,8 @@ def main():
         b = ind[tf]
         ix = b.index.tz_convert(NY)
         out.append(f"\n## Scan {t0:%m-%d %H:%M} → {t1:%m-%d %H:%M} on {tf}: every candle, with the books' signals\n")
-        out.append("| Candle (opens) | Close | EMA21 | RSI (before) | CHOP | ST | EMA+RSI rule | EMA9/21 rule | candles above EMA21 | note |\n|---|---|---|---|---|---|---|---|---|---|")
-        rs, rc = M.build(fr[tf], h1, "ema_rsi", tf), M.build(fr[tf], h1, "ema_cross", tf)
+        out.append("| Candle (opens) | Close | EMA21 | RSI (before) | CHOP | ADX | EMA9-EMA21 (ATR) | ST | EMA+RSI rule | EMA9/21 rule | RSI60/40 rule | candles on this side | note |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+        rs, rc, rm = M.build(fr[tf], h1, "ema_rsi", tf), M.build(fr[tf], h1, "ema_cross", tf), M.build(fr[tf], h1, "rsi_mtf", tf)
         for j in range(len(b)):
             if not (t0 <= ix[j] + DELTA[tf] <= t1):
                 continue
@@ -228,13 +262,14 @@ def main():
                 above += 1
             rv = {1: "BUY", -1: "SELL", 0: ""}[int(rs["raw"].iloc[j])]
             cv = {1: "BUY", -1: "SELL", 0: ""}[int(rc["raw"].iloc[j])]
+            mv = {1: "BUY", -1: "SELL", 0: ""}[int(rm["raw"].iloc[j])]
             note = ""
             if rv == "" and b["rsi"].iloc[j] > 55 and c > b["ema21"].iloc[j]:
                 note = "above EMA21 and RSI>55, but RSI did not CROSS 55 on this candle (no signal by rule)"
             elif rv == "" and b["rsi"].iloc[j] < 44 and c < b["ema21"].iloc[j]:
                 note = "below EMA21 and RSI<44, but RSI did not CROSS 44 on this candle"
             out.append(f"| {ix[j]:%m-%d %H:%M} | {c:.1f} | {b['ema21'].iloc[j]:.1f} | {b['rsi'].iloc[j]:.1f} ({b['rsi'].iloc[j - 1]:.1f}) | "
-                       f"{b['chop'].iloc[j]:.0f} | {'up' if b['st'].iloc[j] > 0 else 'dn'} | {rv} | {cv} | {above}{' ↑' if c > b['ema21'].iloc[j] else ' ↓'} | {note} |")
+                       f"{b['chop'].iloc[j]:.0f} | {b['adx'].iloc[j]:.0f} | {(b['ema9'].iloc[j] - b['ema21'].iloc[j]) / b['atr'].iloc[j]:+.2f} | {'up' if b['st'].iloc[j] > 0 else 'dn'} | {rv} | {cv} | {mv} | {above}{' ↑' if c > b['ema21'].iloc[j] else ' ↓'} | {note} |")
     out.append(f"\n## Every logged signal on {sym} in the window (taken and skipped)\n")
     out.append("| Time (NY) | Book | What happened | Why |\n|---|---|---|---|")
     for s in sorted(sigs, key=lambda s: parse(s["ts"]))[:300]:
