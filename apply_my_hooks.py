@@ -13,7 +13,8 @@ import re
 import sys
 from pathlib import Path
 
-DROP = {"gold_breakout"}                      # upstream shadow books Harshal does not want to run
+DROP = {"gold_breakout",                      # upstream shadow books Harshal does not want to run
+        "my_rsi_15m"}                         # RSI 60/40 on 15 minutes: retired (the other 15m books stay)
 TFN = {"15m": "15 minutes", "1h": "1 hour", "4h": "4 hours", "1d": "1 day"}
 FAM = {"my_ema_rsi": ("EMA21 + RSI 55/44", "#4f8cff", "buy: close > EMA21 + RSI up through 55; sell mirrored"),
        "my_rsi": ("RSI 60/40", "#a97cf5", "buy: higher-timeframe RSI > 60 + RSI up through 60; sell: < 40 and down through 40"),
@@ -52,7 +53,7 @@ def my_books() -> list[str]:
                 names += [k.value for k in v.keys if isinstance(k, ast.Constant)]
             if t == "MOM" and isinstance(v, ast.Constant):
                 names.append(v.value)
-    out = [n for n in dict.fromkeys(names) if info(n)]
+    out = [n for n in dict.fromkeys(names) if info(n) and n not in DROP]
     if not out:
         sys.exit("apply_my_hooks: no books found in fxagents/agents/my_books.py")
     return out

@@ -17,6 +17,11 @@ Round 2 (each change ALONE on top of A, to see which ones help; T = trend gate o
   K   A + 15m chop cutoff 58.8 only      G   A + skip candles over 2.5 ATR only      P   A + stop cap (3 ATR) only
   X1  T with the EMA exit only after TWO closes beyond EMA21      X2  T with NO EMA exit (stop / trail only)
 Timeframes: 15min, 1h, 4h, 1D (4h and 1D candles are built from the hourly bid/ask candles on the New York clock).
+Round 4 = your own review rules, each added on top of the one before (T = trend gate on the nearest higher timeframe):
+  U1  T + FRESH cross: the price must have crossed EMA21 within the last 2 candles (the entry candle or the one before it)
+  U2  U1 + RSI MOMENTUM agrees: a long needs RSI higher than 3 candles ago and not at a 10-candle low; a short needs RSI lower
+      than 3 candles ago and not at a 10-candle high ("when RSI is making a higher high do not take a short")
+  U3  U2 + SWEEP partial: when price takes out the PREVIOUS DAY'S low (shorts) / high (longs) in the trade's favour, 75% is booked there
 Exits in every variant: the first of stop / candle closing back across EMA21 (exit at the next open) / [15m books] Friday 16:00 flat.
 Stop moves to breakeven once the trade has been +1R, then trails 2 x ATR behind the best price.
 Fills: buys at the ask, sells at the bid (real spread); entry at the open after the signal candle. NOT modelled: daily loss limit,
@@ -58,6 +63,9 @@ VARIANTS = {
     "K":  dict(chop15=58.8, skip_big=False, cap=False, trend="off",  brk=None, pattern=False, partial=False),
     "G":  dict(chop15=61.8, skip_big=True,  cap=False, trend="off",  brk=None, pattern=False, partial=False),
     "P":  dict(chop15=61.8, skip_big=False, cap=True,  trend="off",  brk=None, pattern=False, partial=False),
+    "U1": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, fresh=True),
+    "U2": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, fresh=True, rm=True),
+    "U3": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, fresh=True, rm=True, sweep=True),
     "X1": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, ema="two"),
     "X2": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, ema="none"),
     "B":  dict(chop15=58.8, skip_big=True,  cap=True,  trend="off",  brk=None, pattern=False, partial=False),
@@ -124,26 +132,33 @@ def mid(df):
 
 
 # ───────────────────────────── trade simulator ─────────────────────────────
-def sim_trade(k0, s, entry, stop, X, pattern=False, partial=False, ema_mode="one"):
+def sim_trade(k0, s, entry, stop, X, pattern=False, partial=False, ema_mode="one", sweep=False):
     """Walk candles from k0 (the entry candle). Returns dict(k, px, reason, R, mfe). Pure function of arrays: unit-tested."""
-    n = len(X["c"]); risk = abs(entry - stop); best = entry; stopv = stop; part_done = False; banked = 0.0
+    n = len(X["c"]); risk = abs(entry - stop); best = entry; stopv = stop; part_done = False; banked = 0.0; frac = 0.5
+    pdh, pdl = X.get("pdh"), X.get("pdl")
     for k in range(k0, n):
         # 1) stop, evaluated with the stop as it stood at the start of the candle
         if s > 0 and X["bl"][k] <= stopv:
             px = min(stopv, X["bo"][k]) if X["bo"][k] < stopv else stopv
-            return _fin(k, px, "stop", s, entry, risk, best, banked, part_done)
+            return _fin(k, px, "stop", s, entry, risk, best, banked, part_done, frac)
         if s < 0 and X["ah"][k] >= stopv:
             px = max(stopv, X["ao"][k]) if X["ao"][k] > stopv else stopv
-            return _fin(k, px, "stop", s, entry, risk, best, banked, part_done)
+            return _fin(k, px, "stop", s, entry, risk, best, banked, part_done, frac)
         # 2) best price this candle (favourable side, real bid / ask)
         fav = X["bh"][k] if s > 0 else X["al"][k]
         best = max(best, fav) if s > 0 else min(best, fav)
         mfe = (best - entry) * s / risk
         if partial and not part_done and mfe >= 1.0:
-            banked, part_done = 0.5 * 1.0, True                       # half closed at +1R
+            banked, part_done, frac = 0.5 * 1.0, True, 0.5            # half closed at +1R
+        if sweep and not part_done and pdl is not None:               # liquidity sweep of the previous day's extreme: book 75% there
+            half = (X["ac"][k] - X["bc"][k]) / 2
+            if s < 0 and np.isfinite(pdl[k]) and pdl[k] < entry and X["al"][k] <= pdl[k]:
+                banked, part_done, frac = 0.75 * (entry - (pdl[k] + half)) / risk, True, 0.75
+            elif s > 0 and np.isfinite(pdh[k]) and pdh[k] > entry and X["bh"][k] >= pdh[k]:
+                banked, part_done, frac = 0.75 * ((pdh[k] - half) - entry) / risk, True, 0.75
         # 3) decisions at the close of candle k, executed at the open of k+1
         if k + 1 >= n:
-            return _fin(k, X["bc"][k] if s > 0 else X["ac"][k], "end of data", s, entry, risk, best, banked, part_done)
+            return _fin(k, X["bc"][k] if s > 0 else X["ac"][k], "end of data", s, entry, risk, best, banked, part_done, frac)
         c, e = X["c"][k], X["ema21"][k]
         exit_now = None
         beyond = (s > 0 and c < e) or (s < 0 and c > e)
@@ -156,12 +171,12 @@ def sim_trade(k0, s, entry, stop, X, pattern=False, partial=False, ema_mode="one
         elif pattern and _reversal(X, k, s):
             exit_now = "reversal pattern"
         if exit_now:
-            return _fin(k + 1, X["bo"][k + 1] if s > 0 else X["ao"][k + 1], exit_now, s, entry, risk, best, banked, part_done)
+            return _fin(k + 1, X["bo"][k + 1] if s > 0 else X["ao"][k + 1], exit_now, s, entry, risk, best, banked, part_done, frac)
         if mfe >= 1.0:                                                  # breakeven, then 2 x ATR trail; only ever tightens
             a = X["atr"][k]
             new = max(entry, best - 2 * a) if s > 0 else min(entry, best + 2 * a)
             stopv = max(stopv, new) if s > 0 else min(stopv, new)
-    return _fin(n - 1, X["bc"][n - 1] if s > 0 else X["ac"][n - 1], "end of data", s, entry, risk, best, banked, part_done)
+    return _fin(n - 1, X["bc"][n - 1] if s > 0 else X["ac"][n - 1], "end of data", s, entry, risk, best, banked, part_done, frac)
 
 
 def _reversal(X, k, s):
@@ -182,9 +197,9 @@ def _reversal(X, k, s):
             and X["c"][k] > X["o"][k] and X["c"][k] > h)
 
 
-def _fin(k, px, reason, s, entry, risk, best, banked, part_done):
+def _fin(k, px, reason, s, entry, risk, best, banked, part_done, frac=0.5):
     rest = (px - entry) * s / risk
-    R = banked + (0.5 * rest if part_done else rest)
+    R = banked + ((1 - frac) * rest if part_done else rest)
     return dict(k=k, px=px, reason=reason, R=R, mfe=(best - entry) * s / risk)
 
 
@@ -244,7 +259,7 @@ def htf_state(df_htf, tf_delta):
 
 
 # ───────────────────────────── one book, one variant ─────────────────────────────
-def run_book(ba, b, raw, tf, var, F, hs, he, market, family, vname, hs2=None, he2=None):
+def run_book(ba, b, raw, tf, var, F, hs, he, market, family, vname, hs2=None, he2=None, daily=None):
     n = len(b); delta = DELTA[tf]
     X = dict(bo=ba["bo"].to_numpy(), bh=ba["bh"].to_numpy(), bl=ba["bl"].to_numpy(), bc=ba["bc"].to_numpy(),
              ao=ba["ao"].to_numpy(), ah=ba["ah"].to_numpy(), al=ba["al"].to_numpy(), ac=ba["ac"].to_numpy(),
@@ -254,6 +269,12 @@ def run_book(ba, b, raw, tf, var, F, hs, he, market, family, vname, hs2=None, he
     dec = idx + delta
     wall = dec.tz_localize(None)
     X["wk"] = (np.array([(w.dayofweek == 4 and w.hour * 60 + w.minute >= 16 * 60) for w in wall]) if tf == "15min" else np.zeros(n, bool))
+    rsi_v = b["rsi"].to_numpy()
+    if daily is not None:                                                 # previous completed trading day's high / low at each decision time
+        dh, dl, de = daily
+        jd = np.searchsorted(de, wall.to_numpy(), side="right") - 1
+        X["pdh"] = np.where(jd >= 0, dh[np.clip(jd, 0, None)], np.nan)
+        X["pdl"] = np.where(jd >= 0, dl[np.clip(jd, 0, None)], np.nan)
     chop = b["chop"].to_numpy(); a = X["atr"]
     chop_thr = var["chop15"] if tf == "15min" else var.get("chop1h", CHOP1H)
     st_map = np.searchsorted(he, wall.to_numpy(), side="right") - 1
@@ -267,6 +288,15 @@ def run_book(ba, b, raw, tf, var, F, hs, he, market, family, vname, hs2=None, he
         s = int(raw[i])
         if var["skip_big"] and F["rng"][i] > BIG:
             continue
+        if var.get("fresh"):                                              # price crossed EMA21 within the last 2 candles
+            ci = F["cand"][i]
+            if ci > 2 or i - ci < 0 or F["sg"][i - ci] != -F["sg"][i]:
+                continue
+        if var.get("rm") and i >= 10:                                     # RSI direction must agree with the trade
+            if s > 0 and (rsi_v[i] <= rsi_v[i - 3] or rsi_v[i] <= rsi_v[i - 10:i].min()):
+                continue
+            if s < 0 and (rsi_v[i] >= rsi_v[i - 3] or rsi_v[i] >= rsi_v[i - 10:i].max()):
+                continue
         brk = bool(var["brk"]) and is_breakout(F, b, i, s, var["brk"])
         if not brk:
             if chop[i] >= chop_thr:
@@ -290,7 +320,7 @@ def run_book(ba, b, raw, tf, var, F, hs, he, market, family, vname, hs2=None, he
                 continue
             dist = CAPATR * a[i]
         stop = entry - s * dist
-        res = sim_trade(i + 1, s, entry, stop, X, pattern=var["pattern"], partial=var["partial"], ema_mode=var.get("ema", "one"))
+        res = sim_trade(i + 1, s, entry, stop, X, pattern=var["pattern"], partial=var["partial"], ema_mode=var.get("ema", "one"), sweep=var.get("sweep", False))
         busy = res["k"] - 1          # flat from the open (or stop) of candle k, so that candle's close can start a new trade, as live
         out.append(dict(market=market, tf=tf, family=family, variant=vname, t=idx[i + 1], side=s, R=res["R"], mfe=res["mfe"],
                         reason=res["reason"], brk=brk, held=res["k"] - (i + 1)))
@@ -338,6 +368,13 @@ def report(T, variants, holdout_cut, args):
         for v in variants:
             x = d[d.variant == v]; bd, ho = x[x.t < holdout_cut].R, x[x.t >= holdout_cut].R
             L.append(f"| {v} | {len(bd)} | {bd.sum():+.1f} | {bd.mean() if len(bd) else 0:+.3f} | {len(ho)} | {ho.sum():+.1f} | {ho.mean() if len(ho) else 0:+.3f} |")
+        ins = set(args.insample.split(","))
+        L.append(f"\n### {tf}: markets we tuned on ({','.join(sorted(ins))}) versus markets we never looked at\n")
+        L.append("| Variant | Tuned: trades | Tuned: total R | Tuned: avg R | Untouched: trades | Untouched: total R | Untouched: avg R (95% interval) |\n|---|---|---|---|---|---|---|")
+        for v in variants:
+            x = d[d.variant == v]; a_, b_ = x[x.market.isin(ins)].R, x[~x.market.isin(ins)].R
+            sb = stats(b_)
+            L.append(f"| {v} | {len(a_)} | {a_.sum():+.1f} | {a_.mean() if len(a_) else 0:+.3f} | {len(b_)} | {b_.sum():+.1f} | {sb['avg']:+.3f} ({sb['lo']:+.2f}..{sb['hi']:+.2f}) |")
         L.append(f"\n### {tf}: total R by market\n")
         mk = sorted(d.market.unique())
         L.append("| Variant | " + " | ".join(mk) + " |\n|---|" + "---|" * len(mk))
@@ -462,6 +499,22 @@ def selftest():
     chk("EMA exit: one close exits, a single close does not exit in 'two' mode", one["reason"] == "EMA exit" and two["reason"] != "EMA exit")
     chk("EMA exit 'two': exits after the second close, at the next open", two2["reason"] == "EMA exit" and two2["k"] == 8)
     chk("EMA exit 'none': never exits on the EMA", non["reason"] != "EMA exit")
+    # 9c) sweep partial: a short that takes out the previous day's low books 75% there
+    X = arrs(); X["ema21"][:] = 120.0
+    X["pdl"] = np.full(n, 95.0); X["pdh"] = np.full(n, 105.0)
+    for k in range(1, n):
+        pk = max(100.0 - 2.0 * (k - 1), 92.0)                      # price falls steadily through 95
+        X["bo"][k] = X["bh"][k] = X["bl"][k] = X["bc"][k] = pk - 0.1
+        X["ao"][k] = X["ac"][k] = X["al"][k] = pk + 0.1
+        X["ah"][k] = pk + 0.1 + 1.0
+        X["c"][k] = pk
+    X["ah"][12] = 130.0                                            # later the stop gets hit on the rest
+    res = sim_trade(1, -1, 99.9, 102.0, X, sweep=True)
+    expect_bank = 0.75 * (99.9 - (95.0 + 0.1)) / 2.1
+    chk("sweep: 75% booked at the previous day's low", abs(res["R"] - (expect_bank + 0.25 * (res["px"] - 99.9) * -1 / 2.1)) < 1e-9 and res["R"] > 1.2)
+    X["pdl"] = np.full(n, 50.0)
+    res2 = sim_trade(1, -1, 99.9, 102.0, X, sweep=False)
+    chk("sweep off: the same path ends differently (no bank)", res2["R"] != res["R"])
     # 10) classification helpers
     b = pd.DataFrame({"c": [1, 2, 3, 4.0], "ema21": [2, 2, 2, 2.0], "ema9": [2, 2, 2, 2.0], "atr": [1.0] * 4, "h": [1, 2, 3, 4.0], "l": [0, 1, 2, 3.0], "o": [1, 2, 3, 4.0]})
     F = features(b)
@@ -475,9 +528,10 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--years", type=float, default=3)
     ap.add_argument("--markets", default="XAUUSD,NDQ,US30")
-    ap.add_argument("--tfs", default="15min,1h,4h,1D")
+    ap.add_argument("--tfs", default="1h,4h,1D")
     ap.add_argument("--families", default="ema_rsi,ema_cross,rsi_mtf,fresh_state")
-    ap.add_argument("--variants", default="A,T,T2,TN,K,G,P,X1,X2,C,D2,E1")
+    ap.add_argument("--variants", default="A,T,C,U1,U2,U3")
+    ap.add_argument("--insample", default="XAUUSD,NDQ,US30", help="markets we tuned on; everything else is reported as out-of-sample")
     ap.add_argument("--detail", default="A,T", help="variants that also get a family x market table")
     ap.add_argument("--holdout-months", type=int, default=12)
     ap.add_argument("--selftest", action="store_true")
@@ -498,6 +552,8 @@ def main():
         h1m = mid(h1)
         s1h, s4h, s1d = htf_state(h1m, DELTA["1h"]), htf_state(M.build_tf(h1m, "4h")[0], DELTA["4h"]), htf_state(M.build_tf(h1m, "1D")[0], DELTA["1D"])
         htf = {"15min": (s1h, s4h), "1h": (s4h, s1d), "4h": (s1d, zero_state()), "1D": (zero_state(), zero_state())}
+        dd, dend = M.build_tf(h1m, "1D")
+        daily = (dd["high"].to_numpy(), dd["low"].to_numpy(), dend.to_numpy())
         for tf in args.tfs.split(","):
             ba = frames[tf]
             dm = mid(ba)
@@ -509,7 +565,7 @@ def main():
                 F = features(b)
                 (hs, he), (hs2, he2) = htf[tf]
                 for v in variants:
-                    allr += run_book(ba, b, raw, tf, VARIANTS[v], F, hs, he, mk, fam, v, hs2, he2)
+                    allr += run_book(ba, b, raw, tf, VARIANTS[v], F, hs, he, mk, fam, v, hs2, he2, daily)
                 print(f"  {mk} {tf} {fam}: done", file=sys.stderr, flush=True)
               except Exception as ex:                                       # noqa: BLE001
                 import traceback
