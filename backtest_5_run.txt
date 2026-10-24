@@ -1,0 +1,119 @@
+ Container fx-agents-fxagents-run-f87193284072 Creating 
+ Container fx-agents-fxagents-run-f87193284072 Created 
+fetching XAUUSD ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min fresh_state: done
+fetching NDQ ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min fresh_state: done
+fetching US30 ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min fresh_state: done
+fetching EURUSD ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min fresh_state: done
+fetching GBPUSD ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  GBPUSD 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  GBPUSD 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  GBPUSD 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  GBPUSD 15min fresh_state: done
+fetching USDJPY ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDJPY 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDJPY 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDJPY 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDJPY 15min fresh_state: done
+fetching AUDUSD ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  AUDUSD 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  AUDUSD 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  AUDUSD 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  AUDUSD 15min fresh_state: done
+fetching USDCAD ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDCAD 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDCAD 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDCAD 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDCAD 15min fresh_state: done
+fetching XAGUSD ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min fresh_state: done
+fetching SPX500 ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min fresh_state: done
+fetching DE30 ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min fresh_state: done
+fetching UK100 ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  UK100 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  UK100 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  UK100 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  UK100 15min fresh_state: done
+fetching WTI ...
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  WTI 15min ema_rsi: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  WTI 15min ema_cross: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  WTI 15min rsi_mtf: done
+<stdin>:271: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  WTI 15min fresh_state: done
