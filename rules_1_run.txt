@@ -1,0 +1,60 @@
+ Container fx-agents-fxagents-run-3213491ca103 Creating 
+ Container fx-agents-fxagents-run-3213491ca103 Created 
+fetching XAUUSD ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD: done
+fetching NDQ ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ: done
+fetching US30 ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30: done
+fetching EURUSD ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD: done
+fetching GBPUSD ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  GBPUSD: done
+fetching USDJPY ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDJPY: done
+fetching AUDUSD ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  AUDUSD: done
+fetching USDCAD ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDCAD: done
+fetching XAGUSD ...
+  retry 1 after HTTPError: HTTP Error 504: Gateway Timeout
+  retry 2 after HTTPError: HTTP Error 504: Gateway Timeout
+  retry 3 after HTTPError: HTTP Error 504: Gateway Timeout
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD: done
+fetching SPX500 ...
+  retry 1 after HTTPError: HTTP Error 504: Gateway Timeout
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500: done
+fetching DE30 ...
+  retry 1 after HTTPError: HTTP Error 504: Gateway Timeout
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30: done
+fetching UK100 ...
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  UK100: done
+fetching WTI ...
+  retry 1 after HTTPError: HTTP Error 504: Gateway Timeout
+<stdin>:82: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:89: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  WTI: done
