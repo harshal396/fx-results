@@ -1,19 +1,22 @@
 #!/usr/bin/env python3
-"""Your weekly and daily rule books, exactly as written, on OANDA daily bid/ask data.
+"""Your weekly and daily rule books, exactly as written, on OANDA daily bid/ask data. EXIT = a close beyond the EMA21 (changed from the EMA18).
 
 WEEKLY (decided on COMPLETED weeks, i.e. at Friday 17:00 New York; executed at the next daily open, buy at the ask, sell at the bid):
-  WK   LONG  when the weekly RSI turns above 60 AND the weekly close is above the weekly EMA21 (both true for the first time, or again after
-             either condition has failed). Stay in, no stop, until a weekly close is BELOW the weekly EMA18.
-       SHORT when the weekly RSI turns below 40 AND the weekly close is below the weekly EMA21. Stay in until a weekly close is ABOVE the EMA18.
-  WK0  the same without the RSI condition (EMA21 / EMA18 only). Shows what the RSI adds.
+  WK    LONG  when the weekly RSI turns above 60 AND the weekly close is above the weekly EMA21 (both true for the first time, or again after
+              either condition has failed). Stay in, no stop, until a weekly close is BELOW the weekly EMA21.
+        SHORT when the weekly RSI turns below 40 AND the weekly close is below the weekly EMA21. Stay in until a weekly close is ABOVE the EMA21.
+  WK0   the same without the RSI condition (EMA21 only). Shows what the RSI adds.
+  WK18  reference: WK with the OLD exit at the EMA18, to see what the change did.
 DAILY (the weekly RSI is the last completed week's):
-  DY1  weekly RSI > 60 and the daily RSI crosses UP through 58 -> buy.   weekly RSI < 40 and the daily RSI crosses DOWN through 42 -> sell.
-       No stop; exit when a daily close is below the daily EMA18 (long) / above it (short).
-  DY2  DY1 plus the daily close must be on the right side of the daily EMA21 at entry
-  DY3  DY1 but the sell trigger is the daily RSI crossing down through 40 (you wrote "40"; the mirror of 58 is 42)
+  DY1   weekly RSI > 60 and the daily RSI crosses UP through 58 -> buy.   weekly RSI < 40 and the daily RSI crosses DOWN through 42 -> sell.
+        No stop; exit when a daily close is below the daily EMA21 (long) / above it (short).
+  DY3   DY1 but the sell trigger is the daily RSI crossing down through 40 (you wrote "40"; the mirror of 58 is 42)
+  DY18  reference: DY1 with the OLD exit at the daily EMA18.
 A new trade can only start from a fresh signal. Results are % per trade after the real spread (no swap), the worst dip inside each trade,
 time in the market, build versus holdout, the markets we tuned other rules on versus ones we never looked at, by year, and a PLACEBO test:
 the RSI series slid to a random other point in time. If the real result is not clearly better than the placebo, the RSI adds nothing.
+R: these rules have no stop, so "R" here is a stand-in: the risk is the distance from the entry price to the exit EMA at the moment of entry
+(the level that ends the trade), at least 1% for the weekly rule and 0.5% for the daily rule. R = result % / that distance %.
 
 Run in a throwaway container so the live bot is untouched:
   docker compose run --rm --no-deps -T -e FX_MODE=sim fxagents python - --years 5 --placebo 200 --list WK,DY1 < ~/weekly_rules_backtest.py > ~/fx-results/rules_1.md
@@ -92,8 +95,8 @@ def weekly_from_daily(d):
 
 
 
-WEEKLY = ("WK", "WK0")
-DAILY = ("DY1", "DY2", "DY3")
+WEEKLY = ("WK", "WK0", "WK18")
+DAILY = ("DY1", "DY3", "DY18")
 
 
 def _ret(side, entry, exit_):
@@ -111,53 +114,59 @@ def _close_out(X, k_out_px, side):
     return X["bo"][k_out_px] if side > 0 else X["ao"][k_out_px]
 
 
-def run_wk(X, wc, rsi_w, e18, e21, widx, mode, start_k):
+def run_wk(X, wc, rsi_w, ex, e21, widx, mode, start_k):
     n = len(X["bo"]); pos, trades, ent = 0, [], None
     prev_l = prev_s = None; last_j = -2
     for k in range(n - 1):
         j = widx[k]
-        if j < 0 or not all(np.isfinite(v[j]) for v in (wc, rsi_w, e18, e21)):
+        if j < 0 or not all(np.isfinite(v[j]) for v in (wc, rsi_w, ex, e21)):
             continue
-        c, r, a18, a21 = wc[j], rsi_w[j], e18[j], e21[j]
+        c, r, ax, a21 = wc[j], rsi_w[j], ex[j], e21[j]
         lc = (c > a21) and (r > 60 if mode == "WK" else True)
         sc = (c < a21) and (r < 40 if mode == "WK" else True)
         new_week = j != last_j
-        if pos != 0 and ((pos > 0 and c < a18) or (pos < 0 and c > a18)):            # exit: a weekly close beyond the EMA18
+        if pos != 0 and ((pos > 0 and c < ax) or (pos < 0 and c > ax)):              # exit: a weekly close beyond the exit EMA
             px = _close_out(X, k + 1, pos)
-            trades.append(dict(side=pos, k_in=ent[0], k_out=k + 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], k + 1, pos, ent[1]), reason="EMA18 exit"))
+            trades.append(dict(side=pos, k_in=ent[0], k_out=k + 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], k + 1, pos, ent[1]), reason="EMA exit",
+                               risk=ent[2], R=_ret(pos, ent[1], px) / ent[2]))
             pos = 0
         if pos == 0 and new_week and prev_l is not None and k >= start_k - 1:
             side = 1 if (lc and not prev_l) else -1 if (sc and not prev_s) else 0
             if side:
-                ent = (k + 1, X["ao"][k + 1] if side > 0 else X["bo"][k + 1]); pos = side
+                px_in = X["ao"][k + 1] if side > 0 else X["bo"][k + 1]
+                ent = (k + 1, px_in, max(abs(px_in - ax) / px_in * 100, 1.0)); pos = side
         if new_week:
             prev_l, prev_s, last_j = lc, sc, j
     if pos != 0:
         px = X["bc"][n - 1] if pos > 0 else X["ac"][n - 1]
-        trades.append(dict(side=pos, k_in=ent[0], k_out=n - 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], n - 1, pos, ent[1]), reason="still open"))
+        trades.append(dict(side=pos, k_in=ent[0], k_out=n - 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], n - 1, pos, ent[1]), reason="still open",
+                           risk=ent[2], R=_ret(pos, ent[1], px) / ent[2]))
     return trades
 
 
-def run_dy(X, rsi_d, rsi_w, widx, e18, e21d, dn_level, need21, start_k):
+def run_dy(X, rsi_d, rsi_w, widx, ex, e21d, dn_level, need21, start_k):
     n = len(X["bo"]); pos, trades, ent = 0, [], None
     for k in range(max(start_k, 30), n - 1):
-        if pos != 0 and ((pos > 0 and X["mc"][k] < e18[k]) or (pos < 0 and X["mc"][k] > e18[k])):
+        if pos != 0 and ((pos > 0 and X["mc"][k] < ex[k]) or (pos < 0 and X["mc"][k] > ex[k])):
             px = _close_out(X, k + 1, pos)
-            trades.append(dict(side=pos, k_in=ent[0], k_out=k + 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], k + 1, pos, ent[1]), reason="EMA18 exit"))
+            trades.append(dict(side=pos, k_in=ent[0], k_out=k + 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], k + 1, pos, ent[1]), reason="EMA exit",
+                               risk=ent[2], R=_ret(pos, ent[1], px) / ent[2]))
             pos = 0
         if pos == 0:
             j = widx[k]
             rw = rsi_w[j] if j >= 0 else np.nan
-            if not np.isfinite(rw) or not np.isfinite(e18[k]):
+            if not np.isfinite(rw) or not np.isfinite(ex[k]):
                 continue
             up = rw > 60 and rsi_d[k - 1] <= 58 < rsi_d[k] and (not need21 or X["mc"][k] > e21d[k])
             dn = rw < 40 and rsi_d[k - 1] >= dn_level > rsi_d[k] and (not need21 or X["mc"][k] < e21d[k])
             if up or dn:
                 pos = 1 if up else -1
-                ent = (k + 1, X["ao"][k + 1] if pos > 0 else X["bo"][k + 1])
+                px_in = X["ao"][k + 1] if pos > 0 else X["bo"][k + 1]
+                ent = (k + 1, px_in, max(abs(px_in - ex[k]) / px_in * 100, 0.5))
     if pos != 0:
         px = X["bc"][n - 1] if pos > 0 else X["ac"][n - 1]
-        trades.append(dict(side=pos, k_in=ent[0], k_out=n - 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], n - 1, pos, ent[1]), reason="still open"))
+        trades.append(dict(side=pos, k_in=ent[0], k_out=n - 1, ret=_ret(pos, ent[1], px), mae=_mae(X, ent[0], n - 1, pos, ent[1]), reason="still open",
+                           risk=ent[2], R=_ret(pos, ent[1], px) / ent[2]))
     return trades
 
 
@@ -214,6 +223,14 @@ def report(T, variants, label, args, cut, expo):
     for v in variants:
         x = T[T.variant == v]; lg, sh = x[x.side > 0].ret, x[x.side < 0].ret
         L.append(f"| {v} | {len(lg)} | {lg.sum():+.1f} | {lg.mean() if len(lg) else 0:+.2f} | {len(sh)} | {sh.sum():+.1f} | {sh.mean() if len(sh) else 0:+.2f} |")
+    L.append("\n### The same results in R (risk = distance from the entry to the exit EMA at entry; a stand-in, because these rules have no stop)\n")
+    L.append("| Variant | Avg risk (% of price) | Total R | Avg R per trade (95% interval) | PF in R | Gold: total R | Silver: total R | NDQ: total R |\n|---|---|---|---|---|---|---|---|")
+    for v in variants:
+        x = T[T.variant == v]; r_ = x.R.to_numpy()
+        lo, hi = boot(r_); gl = -r_[r_ < 0].sum(); pf = r_[r_ > 0].sum() / gl if gl > 0 else float("inf")
+        g = lambda m: x[x.market == m].R.sum()                                                  # noqa: E731
+        L.append(f"| {v} | {x.risk.mean() if len(x) else 0:.1f} | {r_.sum():+.1f} | {r_.mean() if len(r_) else 0:+.2f} ({lo:+.2f}..{hi:+.2f}) | "
+                 f"{('%.2f' % pf) if pf != float('inf') else 'inf'} | {g('XAUUSD'):+.1f} | {g('XAGUSD'):+.1f} | {g('NDQ'):+.1f} |")
     L.append("\n### How long, how much time in the market, and the worst dip inside a trade\n")
     L.append("| Variant | Avg days held | Time in the market | Avg worst dip inside a trade (%) | Worst dip of any trade (%) | Trades still open |\n|---|---|---|---|---|---|")
     for v in variants:
@@ -240,7 +257,10 @@ def selftest():
     e21 = np.full(n, 11.); e18 = np.full(n, 10.5)
     t = run_wk(X, wc, rsi_w, e18, e21, ident, "WK", 0)
     chk("long entered at the OPEN after the week where RSI>60 and close>EMA21 first held", t[0]["side"] == 1 and t[0]["k_in"] == 5)
-    chk("held (no stop) while RSI fell back to 62 and 61, left only when the close went below the EMA18", t[0]["k_out"] == 10 and t[0]["reason"] == "EMA18 exit")
+    chk("held (no stop) while RSI fell back to 62 and 61, left only when the close went below the exit EMA", t[0]["k_out"] == 10 and t[0]["reason"] == "EMA exit")
+    wc_d = wc.copy(); wc_d[9:11] = 10.8                                  # a close BETWEEN the EMA18 (10.5) and the EMA21 (11)
+    chk("exit at the EMA21 leaves a week earlier than the EMA18 does when the close sits between them",
+        run_wk(X, wc_d, rsi_w, e21, e21, ident, "WK", 0)[0]["k_out"] == 10 and run_wk(X, wc_d, rsi_w, e18, e21, ident, "WK", 0)[0]["k_out"] > 10)
     chk("no instant re-entry while the condition stayed false; a fresh signal at week 11 re-enters", len(t) == 2 and t[1]["k_in"] == 12)
     chk("pays the spread: buys the ask, sells the bid", abs(t[0]["ret"] - ((X["bo"][10] - 0) / X["ao"][5] - 1) * 100) < 1e-9)
     # no RSI condition (WK0): enters as soon as the close is above the EMA21, even though the RSI is still only 55
@@ -255,7 +275,9 @@ def selftest():
     rsi_s = np.array([50, 50, 45, 42, 35, 34, 33, 34, 36, 38, 39, 36, 35, 34.])
     wc_s = np.array([10, 10, 10, 10, 8, 8, 8, 8, 8, 12, 12, 8, 8, 8.])
     ts = run_wk(X, wc_s, rsi_s, np.full(n, 9.5), np.full(n, 9.0 + 1), ident, "WK", 0)
-    chk("short: RSI<40 and close<EMA21 -> sell at the bid, buy back when the close is above the EMA18", ts[0]["side"] == -1 and ts[0]["reason"] == "EMA18 exit")
+    chk("short: RSI<40 and close<EMA21 -> sell at the bid, buy back when the close is above the EMA18", ts[0]["side"] == -1 and ts[0]["reason"] == "EMA exit")
+    j5 = ident[4]
+    chk("R = result % / distance from the entry to the EMA18 at entry (floor 1%)", abs(t[0]["R"] - t[0]["ret"] / max(abs(X["ao"][5] - e18[j5]) / X["ao"][5] * 100, 1.0)) < 1e-9)
     # worst dip inside the trade comes from the real lows
     chk("worst dip is measured from the daily low", abs(t[0]["mae"] - (X["ao"][5] - X["bl"][5:11].min()) / X["ao"][5] * 100) < 1e-9)
     # daily rule
@@ -267,12 +289,12 @@ def selftest():
     chk("daily: no entry when the weekly RSI is not above 60", len(run_dy(X2, rd, np.full(m, 55.), np.zeros(m, int), e18d, e21d, 42, False, 0)) == 0)
     X3 = {k: v.copy() for k, v in X2.items()}; X3["mc"][50:] = 90.
     td2 = run_dy(X3, rd, np.full(m, 65.), np.zeros(m, int), e18d, e21d, 42, False, 0)
-    chk("daily: held with no stop until a daily close fell below the EMA18, exit at the next open", td2[0]["reason"] == "EMA18 exit" and td2[0]["k_out"] == 51)
+    chk("daily: held with no stop until a daily close fell below the EMA18, exit at the next open", td2[0]["reason"] == "EMA exit" and td2[0]["k_out"] == 51)
     rd_dn = np.full(m, 50.); rd_dn[40] = 41.; rd_dn[39] = 44.
     chk("daily short: weekly<40 and the daily RSI crossing down through 42 (DY1) triggers; 40 (DY3) does not at 41-from-44",
         len(run_dy(X2, rd_dn, np.full(m, 35.), np.zeros(m, int), np.full(m, 105.), np.full(m, 105.), 42, False, 0)) == 1
         and len(run_dy(X2, rd_dn, np.full(m, 35.), np.zeros(m, int), np.full(m, 105.), np.full(m, 105.), 40, False, 0)) == 0)
-    chk("daily DY2: the EMA21 side is required at entry", len(run_dy(X2, rd, np.full(m, 65.), np.zeros(m, int), e18d, np.full(m, 120.), 42, True, 0)) == 0)
+    chk("daily: the EMA21 side can be required at entry (option kept for testing)", len(run_dy(X2, rd, np.full(m, 65.), np.zeros(m, int), e18d, np.full(m, 120.), 42, True, 0)) == 0)
     # weekly completion logic carried over from the first version
     idx = pd.DatetimeIndex([pd.Timestamp(x, tz=NY) for x in ("2026-10-11 17:00", "2026-10-12 17:00", "2026-10-13 17:00", "2026-10-14 17:00",
                                                              "2026-10-15 17:00", "2026-10-18 17:00", "2026-10-19 17:00")])
@@ -314,16 +336,17 @@ def main():
             X = {k: d[k].to_numpy() for k in ("bo", "bh", "bl", "bc", "ao", "ah", "al", "ac", "mo", "mh", "ml", "mc")}
             start_k = int(np.searchsorted(d.index.as_unit("ns").asi8, pd.Timestamp(start).as_unit("ns").value))
             idx = d.index.tz_convert(NY); span = len(d) - start_k
-            runs = {"WK": lambda rw=rsi_w: run_wk(X, wc, rw, ew18, ew21, widx, "WK", start_k),
-                    "WK0": lambda: run_wk(X, wc, rsi_w, ew18, ew21, widx, "WK0", start_k),
-                    "DY1": lambda rw=rsi_w, rdd=rsi_d: run_dy(X, rdd, rw, widx, ed18, ed21, 42, False, start_k),
-                    "DY2": lambda: run_dy(X, rsi_d, rsi_w, widx, ed18, ed21, 42, True, start_k),
-                    "DY3": lambda: run_dy(X, rsi_d, rsi_w, widx, ed18, ed21, 40, False, start_k)}
+            runs = {"WK": lambda rw=rsi_w: run_wk(X, wc, rw, ew21, ew21, widx, "WK", start_k),
+                    "WK0": lambda: run_wk(X, wc, rsi_w, ew21, ew21, widx, "WK0", start_k),
+                    "WK18": lambda: run_wk(X, wc, rsi_w, ew18, ew21, widx, "WK", start_k),
+                    "DY1": lambda rw=rsi_w, rdd=rsi_d: run_dy(X, rdd, rw, widx, ed21, ed21, 42, False, start_k),
+                    "DY3": lambda: run_dy(X, rsi_d, rsi_w, widx, ed21, ed21, 40, False, start_k),
+                    "DY18": lambda: run_dy(X, rsi_d, rsi_w, widx, ed18, ed21, 42, False, start_k)}
             for v, fn in runs.items():
                 tr = fn()
                 expo[(v, mk)] = sum(t["k_out"] - t["k_in"] for t in tr) / max(span, 1)
                 for t in tr:
-                    rows.append(dict(market=mk, variant=v, side=t["side"], ret=t["ret"], mae=t["mae"], t_in=idx[t["k_in"]], t_out=idx[t["k_out"]],
+                    rows.append(dict(market=mk, variant=v, side=t["side"], ret=t["ret"], R=t["R"], risk=t["risk"], mae=t["mae"], t_in=idx[t["k_in"]], t_out=idx[t["k_out"]],
                                      days=t["k_out"] - t["k_in"], reason=t["reason"]))
             if args.placebo:
                 rng = np.random.default_rng(7 + len(plc["WK"])); nw = len(rsi_w); nd = len(rsi_d)
@@ -347,8 +370,8 @@ def main():
          f"Generated {now:%Y-%m-%d %H:%M} UTC. OANDA daily bid/ask, {args.years:g} years, markets {args.markets}. Decisions on COMPLETED weeks / days only, executed "
          "at the next daily open (buy at the ask, sell at the bid). No stop, as specified. % = return on the price per trade, one unit, no leverage, no swap.\n",
          "Reference, simply holding each market over the same period: " + ", ".join(f"{m} {r:+.0f}%" for m, r in bh) + "\n"]
-    L += report(T[T.variant.isin(WEEKLY)], WEEKLY, "WEEKLY rule book (WK = your rule, WK0 = the same without the RSI condition)", args, cut, expo)
-    L += report(T[T.variant.isin(DAILY)], DAILY, "DAILY rule book (DY1 = your rule with the sell trigger at 42, DY2 = plus EMA21 side at entry, DY3 = sell trigger at 40)", args, cut, expo)
+    L += report(T[T.variant.isin(WEEKLY)], WEEKLY, "WEEKLY rule book, exit at the EMA21 (WK = your rule, WK0 = without the RSI condition, WK18 = reference with the old EMA exit)", args, cut, expo)
+    L += report(T[T.variant.isin(DAILY)], DAILY, "DAILY rule book, exit at the EMA21 (DY1 = your rule with the sell trigger at 42, DY3 = sell trigger at 40, DY18 = reference with the old EMA exit)", args, cut, expo)
     if args.placebo and plc["WK"]:
         L.append(f"\n## PLACEBO TEST: does the RSI add anything?  ({args.placebo} random re-timings per market)\n")
         L.append("The RSI series are slid to a random other point in time (same values, same regime lengths, no link to the price); the EMA18 / EMA21 parts stay "
@@ -361,9 +384,9 @@ def main():
     for v in [x for x in args.list.split(",") if x]:
         x = T[T.variant == v].sort_values(["market", "t_in"])
         L.append(f"\n## EVERY trade of {v} ({len(x)} trades, chronological within each market)\n")
-        L.append("| Market | Side | Entry | Exit | Days | Result % | Worst dip % | Ended |\n|---|---|---|---|---|---|---|---|")
+        L.append("| Market | Side | Entry | Exit | Days | Result % | Risk % | R | Worst dip % | Ended |\n|---|---|---|---|---|---|---|---|---|---|")
         for _, r in x.iterrows():
-            L.append(f"| {r.market} | {'long' if r.side > 0 else 'short'} | {r.t_in:%Y-%m-%d} | {r.t_out:%Y-%m-%d} | {r.days} | {r.ret:+.1f} | {r.mae:.1f} | {r.reason} |")
+            L.append(f"| {r.market} | {'long' if r.side > 0 else 'short'} | {r.t_in:%Y-%m-%d} | {r.t_out:%Y-%m-%d} | {r.days} | {r.ret:+.1f} | {r.risk:.1f} | {r.R:+.1f} | {r.mae:.1f} | {r.reason} |")
         top = x.sort_values("ret")
         L.append("\nWorst 8: " + "; ".join(f"{r.market} {r.t_in:%Y-%m-%d} {r.ret:+.1f}%" for _, r in top.head(8).iterrows()))
         L.append("\nBest 8: " + "; ".join(f"{r.market} {r.t_in:%Y-%m-%d} {r.ret:+.1f}%" for _, r in top.tail(8).iloc[::-1].iterrows()))
