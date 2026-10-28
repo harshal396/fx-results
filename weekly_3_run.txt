@@ -1,0 +1,10 @@
+ Container fx-agents-fxagents-run-1cd9fc0b98c1 Creating 
+ Container fx-agents-fxagents-run-1cd9fc0b98c1 Created 
+fetching XAUUSD ...
+<stdin>:85: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:92: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD: done
+fetching NDQ ...
+<stdin>:85: Pandas4Warning: DatetimeIndex.dayofweek is deprecated and will be removed in a future version. Use DatetimeIndex.day_of_week instead.
+<stdin>:92: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ: done
