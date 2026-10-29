@@ -22,6 +22,25 @@ Round 4 = your own review rules, each added on top of the one before (T = trend 
   U2  U1 + RSI MOMENTUM agrees: a long needs RSI higher than 3 candles ago and not at a 10-candle low; a short needs RSI lower
       than 3 candles ago and not at a 10-candle high ("when RSI is making a higher high do not take a short")
   U3  U2 + SWEEP partial: when price takes out the PREVIOUS DAY'S low (shorts) / high (longs) in the trade's favour, 75% is booked there
+Round 6 = YOUR RULE BOOK (as described in the gold review):
+  families  ema_cross   fresh breakout: EMA9 crosses EMA21 and the candle closes beyond EMA21
+            pullback21  once in momentum (EMA9 beyond EMA21 for 5 candles, gap >= 0.3 ATR, EMA21 sloping the same way), price comes
+                        BACK TO TOUCH the 21 EMA (high >= EMA21 for a short) and closes back on the trend side; no cross
+            rulebook    both of the above in one book
+  R0  rule-book entries, today's exits (breakeven at +1R, 2 ATR trail)      R1  same entries, YOUR exit: initial stop + a close
+      back across EMA21 only (no breakeven, no trail)                         R2  R1 + RSI direction must agree
+  R3  R2 + trend gate on the nearest higher timeframe      R4  R2 + additional entries allowed while a trade is open (adds)
+  All R variants: 15m chop gate 58.8, stop capped at 3 ATR.
+Round 7 = YOUR MANUAL RULE (from the gold chart review of Oct 28; family "manual"):
+  entry  a candle CLOSES through BOTH the EMA9 and the EMA21 in the new direction while the candle before had not (a fresh double break)
+  stop   none as a price: the trade ends when a candle CLOSES back across the EMA21 (exit at the next open). Risk for R = the distance from the entry to the
+         EMA21 at the signal candle, at least 0.5 ATR
+  target the previous swing level in the trade's direction: the lowest low (shorts) / highest high (longs) of the N candles before the last 3; the trade closes there
+  M0  entry + EMA21-break exit only (no target)              M1  + target at the 40-candle swing level
+  M2  M1, but skip when the target is closer than 1R ("no room")      M2_20 / M2_80  the same with a 20 / 80-candle swing level
+  M3  M2 + RSI direction agrees (buy: RSI higher than 3 candles ago and not at a 10-candle low; sell: the mirror)
+  M3c M3 + chop cutoff 58.5          (no chop gate in the others: your picks come out of ranges)
+  --replay "XAUUSD,15min,2026-10-27 17:00,2026-10-29 00:00" lists every trade M2/M3 would have taken in that window, to compare with your four.
 Exits in every variant: the first of stop / candle closing back across EMA21 (exit at the next open) / [15m books] Friday 16:00 flat.
 Stop moves to breakeven once the trade has been +1R, then trails 2 x ATR behind the best price.
 Fills: buys at the ask, sells at the bid (real spread); entry at the open after the signal candle. NOT modelled: daily loss limit,
@@ -66,6 +85,18 @@ VARIANTS = {
     "U1": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, fresh=True),
     "U2": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, fresh=True, rm=True),
     "U3": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, fresh=True, rm=True, sweep=True),
+    "R0": dict(chop15=58.8, skip_big=False, cap=True, trend="off", brk=None, pattern=False, partial=False),
+    "R1": dict(chop15=58.8, skip_big=False, cap=True, trend="off", brk=None, pattern=False, partial=False, trail=False),
+    "R2": dict(chop15=58.8, skip_big=False, cap=True, trend="off", brk=None, pattern=False, partial=False, trail=False, rm=True),
+    "R3": dict(chop15=58.8, skip_big=False, cap=True, trend="all", brk=None, pattern=False, partial=False, trail=False, rm=True),
+    "R4": dict(chop15=58.8, skip_big=False, cap=True, trend="off", brk=None, pattern=False, partial=False, trail=False, rm=True, overlap=True),
+    "M0":    dict(chop15=999,  chop1h=999,  skip_big=False, cap=False, trend="off", brk=None, pattern=False, partial=False, trail=False, manual=True, tp_n=0,  room=False),
+    "M1":    dict(chop15=999,  chop1h=999,  skip_big=False, cap=False, trend="off", brk=None, pattern=False, partial=False, trail=False, manual=True, tp_n=40, room=False),
+    "M2":    dict(chop15=999,  chop1h=999,  skip_big=False, cap=False, trend="off", brk=None, pattern=False, partial=False, trail=False, manual=True, tp_n=40, room=True),
+    "M2_20": dict(chop15=999,  chop1h=999,  skip_big=False, cap=False, trend="off", brk=None, pattern=False, partial=False, trail=False, manual=True, tp_n=20, room=True),
+    "M2_80": dict(chop15=999,  chop1h=999,  skip_big=False, cap=False, trend="off", brk=None, pattern=False, partial=False, trail=False, manual=True, tp_n=80, room=True),
+    "M3":    dict(chop15=999,  chop1h=999,  skip_big=False, cap=False, trend="off", brk=None, pattern=False, partial=False, trail=False, manual=True, tp_n=40, room=True, rm=True),
+    "M3c":   dict(chop15=58.5, chop1h=58.5, skip_big=False, cap=False, trend="off", brk=None, pattern=False, partial=False, trail=False, manual=True, tp_n=40, room=True, rm=True),
     "X1": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, ema="two"),
     "X2": dict(chop15=61.8, skip_big=False, cap=False, trend="all",  brk=None, pattern=False, partial=False, ema="none"),
     "B":  dict(chop15=58.8, skip_big=True,  cap=True,  trend="off",  brk=None, pattern=False, partial=False),
@@ -132,9 +163,10 @@ def mid(df):
 
 
 # ───────────────────────────── trade simulator ─────────────────────────────
-def sim_trade(k0, s, entry, stop, X, pattern=False, partial=False, ema_mode="one", sweep=False):
-    """Walk candles from k0 (the entry candle). Returns dict(k, px, reason, R, mfe). Pure function of arrays: unit-tested."""
-    n = len(X["c"]); risk = abs(entry - stop); best = entry; stopv = stop; part_done = False; banked = 0.0; frac = 0.5
+def sim_trade(k0, s, entry, stop, X, pattern=False, partial=False, ema_mode="one", sweep=False, trail=True, tp=None, risk_fixed=None):
+    """Walk candles from k0 (the entry candle). Returns dict(k, px, reason, R, mfe). Pure function of arrays: unit-tested.
+    tp = a limit target (buy-back at the ask for shorts, sell at the bid for longs); risk_fixed = the risk R is measured against (default entry-to-stop)."""
+    n = len(X["c"]); risk = risk_fixed or abs(entry - stop); best = entry; stopv = stop; part_done = False; banked = 0.0; frac = 0.5
     pdh, pdl = X.get("pdh"), X.get("pdl")
     for k in range(k0, n):
         # 1) stop, evaluated with the stop as it stood at the start of the candle
@@ -144,6 +176,11 @@ def sim_trade(k0, s, entry, stop, X, pattern=False, partial=False, ema_mode="one
         if s < 0 and X["ah"][k] >= stopv:
             px = max(stopv, X["ao"][k]) if X["ao"][k] > stopv else stopv
             return _fin(k, px, "stop", s, entry, risk, best, banked, part_done, frac)
+        if tp is not None:                                            # the target: a limit order, filled at the target or better (gaps)
+            if s > 0 and X["bh"][k] >= tp:
+                return _fin(k, max(tp, X["bo"][k]) if X["bo"][k] >= tp else tp, "target", s, entry, risk, max(best, tp), banked, part_done, frac)
+            if s < 0 and X["al"][k] <= tp:
+                return _fin(k, min(tp, X["ao"][k]) if X["ao"][k] <= tp else tp, "target", s, entry, risk, min(best, tp), banked, part_done, frac)
         # 2) best price this candle (favourable side, real bid / ask)
         fav = X["bh"][k] if s > 0 else X["al"][k]
         best = max(best, fav) if s > 0 else min(best, fav)
@@ -172,7 +209,7 @@ def sim_trade(k0, s, entry, stop, X, pattern=False, partial=False, ema_mode="one
             exit_now = "reversal pattern"
         if exit_now:
             return _fin(k + 1, X["bo"][k + 1] if s > 0 else X["ao"][k + 1], exit_now, s, entry, risk, best, banked, part_done, frac)
-        if mfe >= 1.0:                                                  # breakeven, then 2 x ATR trail; only ever tightens
+        if trail and mfe >= 1.0:                                        # breakeven, then 2 x ATR trail; only ever tightens
             a = X["atr"][k]
             new = max(entry, best - 2 * a) if s > 0 else min(entry, best + 2 * a)
             stopv = max(stopv, new) if s > 0 else min(stopv, new)
@@ -224,6 +261,46 @@ def fresh_state_raw(b):
             raw[i] = -1
     raw[:M.WARMUP["1h"]] = 0
     return raw
+
+
+def pullback_raw(b):
+    """Your pullback entry: in momentum (EMA9 beyond EMA21 for 5 candles, gap >= 0.3 ATR, EMA21 sloping with the trend), price comes
+    back to TOUCH the 21 EMA (short: high >= EMA21) and closes back on the trend side, without crossing it."""
+    c, h, l, e9, e21, a = (b[k].to_numpy() for k in ("c", "h", "l", "ema9", "ema21", "atr"))
+    n = len(b); raw = np.zeros(n, int)
+    for i in range(30, n):
+        if not (np.isfinite(a[i]) and a[i] > 0):
+            continue
+        if all(e9[i - k] < e21[i - k] for k in range(5)) and e21[i] < e21[i - 5] and (e21[i] - e9[i]) >= 0.3 * a[i]:
+            if h[i] >= e21[i] and c[i] < e21[i] and c[i - 1] < e21[i - 1]:
+                raw[i] = -1
+        elif all(e9[i - k] > e21[i - k] for k in range(5)) and e21[i] > e21[i - 5] and (e9[i] - e21[i]) >= 0.3 * a[i]:
+            if l[i] <= e21[i] and c[i] > e21[i] and c[i - 1] > e21[i - 1]:
+                raw[i] = 1
+    raw[:M.WARMUP["1h"]] = 0
+    return raw
+
+
+def manual_raw(b):
+    """Your entry: a candle closes through BOTH EMAs in the new direction while the previous candle had not (a fresh double break)."""
+    c, e9, e21 = b["c"].to_numpy(), b["ema9"].to_numpy(), b["ema21"].to_numpy()
+    n = len(c); raw = np.zeros(n, int)
+    below, above = (c < e9) & (c < e21), (c > e9) & (c > e21)
+    for i in range(1, n):
+        if below[i] and not below[i - 1]:
+            raw[i] = -1
+        elif above[i] and not above[i - 1]:
+            raw[i] = 1
+    raw[:100] = 0
+    return raw
+
+
+def manual_target(lows, highs, i, s, n):
+    """The previous swing level in the trade's direction: the lowest low (short) / highest high (long) of the n candles before the last 3."""
+    lo, hi = max(i - n, 0), i - 2
+    if hi <= lo:
+        return None
+    return float(lows[lo:hi].min()) if s < 0 else float(highs[lo:hi].max())
 
 
 def features(b):
@@ -312,18 +389,33 @@ def run_book(ba, b, raw, tf, var, F, hs, he, market, family, vname, hs2=None, he
                 if (s > 0 and hv2 < 0) or (s < 0 and hv2 > 0):
                     continue
         entry = X["ao"][i + 1] if s > 0 else X["bo"][i + 1]
-        ext = b["l"].to_numpy()[max(i - 7, 0):i + 1].min() if s > 0 else b["h"].to_numpy()[max(i - 7, 0):i + 1].max()
-        dist = (entry - (ext - s * 0.25 * a[i])) * s
-        dist = max(dist, MINATR * a[i])
-        if dist > CAPATR * a[i]:
-            if not var["cap"]:
-                continue
-            dist = CAPATR * a[i]
-        stop = entry - s * dist
-        res = sim_trade(i + 1, s, entry, stop, X, pattern=var["pattern"], partial=var["partial"], ema_mode=var.get("ema", "one"), sweep=var.get("sweep", False))
-        busy = res["k"] - 1          # flat from the open (or stop) of candle k, so that candle's close can start a new trade, as live
+        tp_px = None
+        if var.get("manual"):                                              # your rule: no price stop, EMA21-break exit, target at the previous swing
+            dist = max(abs(entry - X["ema21"][i]), 0.5 * a[i])
+            if var.get("tp_n"):
+                tp_px = manual_target(X["l"], X["h"], i, s, var["tp_n"])
+                if tp_px is None or (tp_px - entry) * s <= 0:
+                    continue                                               # no target ahead of the price
+                if var.get("room") and (tp_px - entry) * s < dist:
+                    continue                                               # no room: the target is closer than 1R
+            res = sim_trade(i + 1, s, entry, entry - s * 1000 * a[i], X, ema_mode="one", trail=False, tp=tp_px, risk_fixed=dist)
+        else:
+            ext = b["l"].to_numpy()[max(i - 7, 0):i + 1].min() if s > 0 else b["h"].to_numpy()[max(i - 7, 0):i + 1].max()
+            dist = (entry - (ext - s * 0.25 * a[i])) * s
+            dist = max(dist, MINATR * a[i])
+            if dist > CAPATR * a[i]:
+                if not var["cap"]:
+                    continue
+                dist = CAPATR * a[i]
+            stop = entry - s * dist
+            res = sim_trade(i + 1, s, entry, stop, X, pattern=var["pattern"], partial=var["partial"], ema_mode=var.get("ema", "one"), sweep=var.get("sweep", False), trail=var.get("trail", True))
+        if not var.get("overlap"):
+            busy = res["k"] - 1      # flat from the open (or stop) of candle k, so that candle's close can start a new trade, as live
+        else:
+            busy = i + 2             # adds allowed: only avoid firing on consecutive candles
         out.append(dict(market=market, tf=tf, family=family, variant=vname, t=idx[i + 1], side=s, R=res["R"], mfe=res["mfe"],
-                        reason=res["reason"], brk=brk, held=res["k"] - (i + 1)))
+                        reason=res["reason"], brk=brk, held=res["k"] - (i + 1), t_out=idx[min(res["k"], n - 1)], entry=entry, exit_px=res["px"],
+                        risk=dist, target=tp_px))
     return out
 
 
@@ -515,6 +607,47 @@ def selftest():
     X["pdl"] = np.full(n, 50.0)
     res2 = sim_trade(1, -1, 99.9, 102.0, X, sweep=False)
     chk("sweep off: the same path ends differently (no bank)", res2["R"] != res["R"])
+    # 9d) your exit: no breakeven / trail, so a run followed by a drop that stays above the INITIAL stop does not stop us out
+    X = ramp(); X["bl"][9] = 100.0
+    with_trail = sim_trade(1, 1, 100.1, 98.1, X)
+    no_trail = sim_trade(1, 1, 100.1, 98.1, X, trail=False)
+    chk("trail on: stopped out on the drop; trail off: still in the trade", with_trail["reason"] == "stop" and no_trail["reason"] != "stop")
+    # 9e) pullback entry: downtrend, price touches the 21 EMA and is rejected (short); a candle that closes above it is not a pullback
+    nn = 160; idx = pd.date_range("2026-01-05", periods=nn, freq="1h")
+    c_ = np.linspace(200, 60, nn); e21_ = c_ + 6.0; e9_ = c_ + 2.0          # steady fall, EMA9 below EMA21, price below both
+    bb = pd.DataFrame({"c": c_, "h": c_ + 1, "l": c_ - 1, "ema9": e9_, "ema21": e21_, "atr": np.full(nn, 3.0)}, index=idx)
+    bb.loc[bb.index[140], "h"] = bb["ema21"].iloc[140] + 0.5                 # touch from below, close stays below
+    pb = pullback_raw(bb)
+    chk("pullback: one short at the touch candle only", list(np.where(pb != 0)[0]) == [140] and pb[140] == -1)
+    bb.loc[bb.index[140], "c"] = bb["ema21"].iloc[140] + 1.0                 # closes ABOVE the EMA: that is a break, not a pullback
+    chk("pullback: a close beyond the EMA is not a pullback entry", pullback_raw(bb)[140] == 0)
+    # 9f) the manual rule's target and risk
+    X = arrs(); X["ema21"][:] = 105.0; X["al"][5] = 94.9                    # a short: the ask trades down through the target 95
+    r = sim_trade(1, -1, 99.9, 99.9 + 1000.0, X, ema_mode="one", trail=False, tp=95.0, risk_fixed=2.0)
+    chk("short target: closed at the target (limit buy), reason 'target'", r["reason"] == "target" and abs(r["px"] - 95.0) < 1e-9 and r["k"] == 5)
+    chk("R is measured against the fixed risk: (99.9-95)/2 = +2.45", abs(r["R"] - 2.45) < 1e-9)
+    X = arrs(); X["ema21"][:] = 90.0; X["bh"][6] = 105.3
+    r = sim_trade(1, 1, 100.1, 100.1 - 1000.0, X, ema_mode="one", trail=False, tp=105.0, risk_fixed=2.0)
+    chk("long target: sold at the target (limit sell), R = (105-100.1)/2", r["reason"] == "target" and abs(r["px"] - 105.0) < 1e-9 and abs(r["R"] - 2.45) < 1e-9)
+    X["bo"][6] = 106.0
+    r = sim_trade(1, 1, 100.1, 100.1 - 1000.0, X, ema_mode="one", trail=False, tp=105.0, risk_fixed=2.0)
+    chk("a gap through the target fills at the open (better than the target)", abs(r["px"] - 106.0) < 1e-9)
+    X = arrs(); X["ema21"][:] = 90.0; X["c"][8] = 80.0; X["bo"][9] = 99.0
+    r = sim_trade(1, 1, 100.1, 100.1 - 1000.0, X, ema_mode="one", trail=False, tp=130.0, risk_fixed=2.0)
+    chk("target never reached: the EMA21 break ends the trade at the next open (that IS the stop)", r["reason"] == "EMA exit" and r["k"] == 9 and r["R"] < 0)
+    # 9g) your entry: a fresh close through BOTH EMAs, once per move
+    nn = 200; cc = np.full(nn, 101.0); cc[150:170] = 99.0; cc[170:] = 101.0
+    bb = pd.DataFrame({"c": cc, "ema9": np.full(nn, 100.0), "ema21": np.full(nn, 100.0)})
+    rw = manual_raw(bb)
+    chk("manual entry: a short when the close first drops below both EMAs, a long when it first climbs back; nothing in between", list(np.where(rw != 0)[0]) == [150, 170] and rw[150] == -1 and rw[170] == 1)
+    cc2 = np.full(nn, 101.0); cc2[150:] = 99.0; bb2 = pd.DataFrame({"c": cc2, "ema9": np.full(nn, 100.0), "ema21": np.full(nn, 100.0)})
+    bb2.loc[150:, "ema9"] = 98.0                                           # the close (99) is below the EMA21 (100) but ABOVE the EMA9 (98)
+    chk("only one EMA broken is not an entry", int(manual_raw(bb2)[150]) == 0 and int(np.abs(manual_raw(bb2)).sum()) == 0)
+    # 9h) the target is the previous swing level, not the last few candles
+    lo = np.array([100., 99., 98., 90., 97., 98., 99., 98.5, 98., 97.5]); hi = lo + 1
+    chk("short target = lowest low of the candles before the last 3 (the 90 swing low)", manual_target(lo, hi, 9, -1, 9) == 90.0)
+    chk("the last 3 candles are excluded (a low there is not 'previous')", manual_target(np.array([100., 99., 98., 97., 96., 95., 94.]), np.array([101.] * 7), 6, -1, 6) == 97.0)
+    chk("long target = highest high of the same window", manual_target(lo, hi, 9, 1, 9) == 100.0 + 1 and manual_target(lo, np.array([101., 105., 102., 101., 100., 100., 100., 100., 100., 100.]), 9, 1, 9) == 105.0)
     # 10) classification helpers
     b = pd.DataFrame({"c": [1, 2, 3, 4.0], "ema21": [2, 2, 2, 2.0], "ema9": [2, 2, 2, 2.0], "atr": [1.0] * 4, "h": [1, 2, 3, 4.0], "l": [0, 1, 2, 3.0], "o": [1, 2, 3, 4.0]})
     F = features(b)
@@ -529,12 +662,13 @@ def main():
     ap.add_argument("--years", type=float, default=3)
     ap.add_argument("--markets", default="XAUUSD,NDQ,US30")
     ap.add_argument("--tfs", default="1h,4h,1D")
-    ap.add_argument("--families", default="ema_rsi,ema_cross,rsi_mtf,fresh_state")
+    ap.add_argument("--families", default="ema_rsi,ema_cross,rsi_mtf,fresh_state,pullback21,rulebook")
     ap.add_argument("--variants", default="A,T,C,U1,U2,U3")
     ap.add_argument("--insample", default="XAUUSD,NDQ,US30", help="markets we tuned on; everything else is reported as out-of-sample")
     ap.add_argument("--detail", default="A,T", help="variants that also get a family x market table")
     ap.add_argument("--holdout-months", type=int, default=12)
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--replay", default="", help='"MARKET,TF,start,end" (New York time): list the manual-rule trades in that window')
     args = ap.parse_args()
     if args.selftest:
         sys.exit(0 if selftest() else 1)
@@ -559,9 +693,18 @@ def main():
             dm = mid(ba)
             for fam in args.families.split(","):
               try:
-                rule = "ema_rsi" if fam == "fresh_state" else fam
+                rule = "ema_rsi" if fam in ("fresh_state", "pullback21") else "ema_cross" if fam in ("rulebook", "manual") else fam
                 b = M.build(dm, h1m, rule, tf)
-                raw = fresh_state_raw(b) if fam == "fresh_state" else b["raw"].to_numpy()
+                if fam == "fresh_state":
+                    raw = fresh_state_raw(b)
+                elif fam == "pullback21":
+                    raw = pullback_raw(b)
+                elif fam == "rulebook":
+                    raw = np.where(b["raw"].to_numpy() != 0, b["raw"].to_numpy(), pullback_raw(b))
+                elif fam == "manual":
+                    raw = manual_raw(b)
+                else:
+                    raw = b["raw"].to_numpy()
                 F = features(b)
                 (hs, he), (hs2, he2) = htf[tf]
                 for v in variants:
@@ -582,6 +725,15 @@ def main():
     T["t"] = pd.to_datetime(T["t"], utc=True).dt.tz_convert(NY)
     cut = T.t.max() - pd.DateOffset(months=args.holdout_months)
     txt = report(T, variants, cut, args)
+    if args.replay:
+        mk_, tf_, t0, t1 = [x.strip() for x in args.replay.split(",")]
+        t0, t1 = pd.Timestamp(t0, tz=NY), pd.Timestamp(t1, tz=NY)
+        rr = T[(T.market == mk_) & (T.tf == tf_) & (T.family == "manual") & (T.t >= t0) & (T.t <= t1)].sort_values(["variant", "t"])
+        txt += f"\n\n## REPLAY {mk_} {tf_} {t0:%m-%d %H:%M} -> {t1:%m-%d %H:%M}: every trade the manual rule would have taken\n\n"
+        txt += "| Variant | Entry (NY) | Side | Entry price | Target | Exit (NY) | Exit price | Ended | R |\n|---|---|---|---|---|---|---|---|---|\n"
+        for _, r in rr.iterrows():
+            txt += (f"| {r.variant} | {r.t:%m-%d %H:%M} | {'long' if r.side > 0 else 'short'} | {r.entry:.2f} | {('%.2f' % r.target) if pd.notna(r.target) else '-'} | "
+                    f"{r.t_out:%m-%d %H:%M} | {r.exit_px:.2f} | {r.reason} | {r.R:+.2f} |\n")
     if problems:
         txt += "\n\n## Problems during the run (these parts are missing from the tables above)\n\n" + "\n".join(f"- {p}" for p in problems)
     print(txt)
