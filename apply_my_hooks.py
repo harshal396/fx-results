@@ -15,6 +15,20 @@ from pathlib import Path
 
 DROP = {"gold_breakout",                      # upstream shadow books Harshal does not want to run
         "my_rsi_15m"}                         # RSI 60/40 on 15 minutes: retired (the other 15m books stay)
+CHOP_MAX = 58.5                              # choppy-market cutoff written into every book that does not have one yet
+def gates_for(book: str) -> list[tuple[str, str, str]]:
+    """(key, value, comment) of the round-4 gates for a book, by its timeframe; back-tested on 13 markets (backtest 4 and 5)."""
+    tf = book.rsplit("_", 1)[-1]
+    trend = ("trend_gate", "true", "no buy while the next timeframe up is bearish, no sell while it is bullish")
+    if tf in ("15m", "1h"):
+        return [trend, ("fresh", "2", "the price must have crossed the EMA21 within the last 2 candles (0 = off)"),
+                ("rsi_momentum", "true", "a buy needs the RSI rising, a sell the RSI falling (and not at a 10-candle extreme)")]
+    if tf == "4h":
+        return [trend, ("skip_big", "2.5", "skip a signal candle larger than 2.5 ATR (0 = off)"),
+                ("stop_cap", "true", "cap the stop at 3 ATR instead of skipping the trade")]
+    return []                                                              # daily books: no round-4 gates (they did not help)
+
+
 TFN = {"15m": "15 minutes", "1h": "1 hour", "4h": "4 hours", "1d": "1 day"}
 FAM = {"my_ema_rsi": ("EMA21 + RSI 55/44", "#4f8cff", "buy: close > EMA21 + RSI up through 55; sell mirrored"),
        "my_rsi": ("RSI 60/40", "#a97cf5", "buy: higher-timeframe RSI > 60 + RSI up through 60; sell: < 40 and down through 40"),
@@ -64,11 +78,24 @@ def cfg_block(book: str) -> str:
     s = f"  {book}:{pad}# Harshal: {info(book)[3]}\n"
     if book == "my_intraday_mom":
         return s + "    symbols: [NDQ, US30]\n    risk_pct: 0.005\n    stop_atr: 3.0         # protective stop = 3 x ATR(14, 15m); the trade is closed at 16:00 anyway\n"
-    return (s + "    symbols: [XAUUSD, NDQ, US30]\n    risk_pct: 0.005\n"
-            "    use_chop: true          # no entry when CHOP(14) >= 61.8\n"
+    return (s + f"    symbols: [{'XAUUSD, NDQ' if book.endswith('_15m') else 'XAUUSD, NDQ, US30'}]\n    risk_pct: 0.005\n"
+            "    use_chop: true          # no entry when CHOP(14) >= chop_max\n"
+            f"    chop_max: {CHOP_MAX}        # choppy-market cutoff (the bot's default is 61.8)\n"
+            + "".join(f"    {k}: {v}{' ' * max(1, 22 - len(k) - len(v))}# {c}\n" for k, v, c in gates_for(book)) +
             "    use_supertrend: false   # true = buys only while Supertrend(10, 3) is up, sells only while it is down\n"
             "    use_hours: false        # true = gold 20:00-11:00, NDQ / US30 20:00-16:00 New York, none 03:00-06:00 (never for daily books)\n"
             "    use_partials: true      # Jev decides partial profit (once +0.5R: continuation < 0.45 books half of what is open, max twice)\n")
+
+
+def ensure_key(s: str, section: str, key: str, line: str, after: str | None = None) -> str:
+    """Add `line` to `section` of config.yaml if the section has no `key` yet; an existing value is never touched."""
+    m = re.search(rf"^  {section}:[^\n]*\n((?:    [^\n]*\n)*)", s, re.M)
+    if not m or re.search(rf"^    {key}:", m.group(1), re.M):
+        return s
+    block = m.group(1)
+    a = re.search(rf"^    {after}:[^\n]*\n", block, re.M) if after else None
+    pos = (m.start(1) + a.end()) if a else m.end()
+    return s[:pos] + line + s[pos:]
 
 
 def do_config(books: list[str]) -> str:
@@ -89,6 +116,16 @@ def do_config(books: list[str]) -> str:
             skip = False
         out.append(ln)
     s = "\n".join(out)
+    for b in books:
+        if b != "my_intraday_mom":
+            s = ensure_key(s, b, "chop_max", f"    chop_max: {CHOP_MAX}        # choppy-market cutoff (the bot's default is 61.8)\n", after="use_chop")
+    for b in books:
+        if b == "my_intraday_mom":
+            continue
+        for k, v, c in reversed(gates_for(b)):                            # each missing key goes right under chop_max; a value you set is never touched
+            s = ensure_key(s, b, k, f"    {k}: {v}{' ' * max(1, 22 - len(k) - len(v))}# {c}\n", after="chop_max")
+        if b.endswith("_15m"):                                             # US30 loses on 15 minutes: drop it once, if the list is still the old default
+            s = re.sub(rf"(^  {b}:[^\n]*\n(?:    [^\n]*\n)*?    symbols: )\[XAUUSD, NDQ, US30\]", r"\g<1>[XAUUSD, NDQ]", s, count=1, flags=re.M)
     m = re.search(r"^  modes: \[([^\]]*)\](.*)$", s, re.M)
     if not m:
         sys.exit("apply_my_hooks: no `  modes: [...]` line in config.yaml")
@@ -185,10 +222,17 @@ def do_his_ema_chop() -> str:
     if not m:
         return "his ema21_rsi55 section not found in config.yaml (skipped)"
     if "chop_filter" not in m.group(0):
-        s = s[:m.end()] + "    chop_filter: true           # Harshal: no entry when CHOP(14, 15m) >= 61.8 (agents/ema_rsi_trader.py)\n" + s[m.end():]
-        c.write_text(s)
+        s = s[:m.end()] + "    chop_filter: true           # Harshal: no entry when CHOP(14, 15m) >= chop_max (agents/ema_rsi_trader.py)\n" + s[m.end():]
+    s = ensure_key(s, "ema21_rsi55", "chop_max", f"    chop_max: {CHOP_MAX}            # choppy-market cutoff for the chop gate above\n", after="chop_filter")
+    c.write_text(s)
     p = Path("fxagents/agents/ema_rsi_trader.py"); x = p.read_text()
     if "self.chop_filter" in x:
+        if "self.chop_max" not in x:                                   # upgrade an older install: the cutoff becomes a setting
+            mm = re.search(r"^( *)self\.chop_filter = [^\n]*\n", x, re.M)
+            x = x[:mm.end()] + f'{mm.group(1)}self.chop_max = float(c.get("chop_max", CHOP_HI))                # Harshal: chop cutoff (config)\n' + x[mm.end():]
+            x = x.replace("if ch >= CHOP_HI:", "if ch >= self.chop_max:").replace("(CHOP {ch:.1f} ≥ {CHOP_HI})", "(CHOP {ch:.1f} ≥ {self.chop_max:g})")
+            p.write_text(x)
+            return "chop cutoff is now a setting (chop_max) on his EMA21 + RSI 55 book"
         return "chop filter already in place"
     a1 = "from ..simple_rules import ema, wilder\n"
     a2 = '        self.stop_atr = float(c.get("stop_atr", 3.0))\n'
@@ -197,11 +241,12 @@ def do_his_ema_chop() -> str:
         if x.count(a) != 1:
             return f"ema_rsi_trader.py changed upstream - anchor missing: {a[:40]!r} (chop filter NOT applied)"
     x = x.replace(a1, a1 + "from ..regime import CHOP_HI, chop_index\n", 1)
-    x = x.replace(a2, a2 + '        self.chop_filter = bool(c.get("chop_filter", False))             # Harshal: chop gate (config)\n', 1)
+    x = x.replace(a2, a2 + '        self.chop_filter = bool(c.get("chop_filter", False))             # Harshal: chop gate (config)\n'
+                  '        self.chop_max = float(c.get("chop_max", CHOP_HI))                # Harshal: chop cutoff (config)\n', 1)
     x = x.replace(a3, ("        if self.chop_filter:                                              # Harshal: the same chop gate as his own books\n"
                        '            ch = float(chop_index(pd.DataFrame({"high": b.h, "low": b.l, "close": b.c})).iloc[-1])\n'
-                       "            if ch >= CHOP_HI:\n"
-                       '                return self._reject(rec, f"choppy market (CHOP {ch:.1f} ≥ {CHOP_HI})")\n') + a3, 1)
+                       "            if ch >= self.chop_max:\n"
+                       '                return self._reject(rec, f"choppy market (CHOP {ch:.1f} ≥ {self.chop_max:g})")\n') + a3, 1)
     p.write_text(x)
     return "chop filter added to his EMA21 + RSI 55 book"
 
