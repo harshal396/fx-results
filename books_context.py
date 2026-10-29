@@ -164,6 +164,81 @@ def diagnose(b, i, side, tf, ind):
     return d
 
 
+# ───────────── would the NEW rules have blocked this trade? (same definitions as fxagents/agents/my_books.py) ─────────────
+CHOP_MAX = 58.5
+HTF_OF = {"15min": "1h", "1h": "4h", "4h": "1D"}
+
+
+def gates_for(book, sym):
+    """The settings the update installs. None = the new rules do not touch this book."""
+    if book == "ema21_rsi55":
+        return dict(note="his book: chop cutoff only", fresh=0, rsi=False, trend=False, skip_big=0.0, cap=False)
+    if not book.startswith("my_") or "intraday" in book:
+        return None
+    tf = book_tf(book)
+    g = dict(note="", fresh=0, rsi=False, trend=False, skip_big=0.0, cap=False)
+    if tf in ("15min", "1h"):
+        g.update(fresh=2, rsi=True, trend=True)
+    elif tf == "4h":
+        g.update(trend=True, skip_big=2.5, cap=True)
+    if tf == "15min" and sym == "US30":
+        g["dropped"] = "US30 is no longer traded by the 15m books"
+    if book == "my_rsi_15m":
+        g["dropped"] = "the RSI 60/40 15m book is retired"
+    return g
+
+
+def htf_state(ind, tf, t):
+    """+1 / -1 / 0 on the next timeframe up at time t: close vs EMA21 with Supertrend or RSI agreeing (the live definition)."""
+    nxt = HTF_OF.get(tf)
+    hb = ind.get(nxt) if nxt else None
+    if hb is None:
+        return 0, nxt
+    j = last_done(hb, nxt, t)
+    if j < 30:
+        return 0, nxt
+    c, e21, r, st = hb["c"].iloc[j], hb["ema21"].iloc[j], hb["rsi"].iloc[j], hb["st"].iloc[j]
+    if c > e21 and (st > 0 or r > 50):
+        return 1, nxt
+    if c < e21 and (st < 0 or r < 50):
+        return -1, nxt
+    return 0, nxt
+
+
+def verdict(book, sym, b, i, side, tf, ind, opened):
+    g = gates_for(book, sym)
+    if g is None:
+        return None, []
+    why = []
+    if g.get("dropped"):
+        why.append(g["dropped"])
+    chop = float(b["chop"].iloc[i])
+    if chop >= CHOP_MAX:
+        why.append(f"choppy (CHOP {chop:.1f} >= {CHOP_MAX:g})")
+    c, e21, r = b["c"].to_numpy(), b["ema21"].to_numpy(), b["rsi"].to_numpy()
+    if g["skip_big"]:
+        rng = float(b["h"].iloc[i] - b["l"].iloc[i]) / float(b["atr"].iloc[i])
+        if rng > g["skip_big"]:
+            why.append(f"oversized signal candle ({rng:.1f} ATR > {g['skip_big']:g})")
+    if g["fresh"]:
+        sg = np.sign(c - e21)
+        run = 1
+        while i - run >= 0 and sg[i - run] == sg[i]:
+            run += 1
+        if run > g["fresh"] or i - run < 0 or sg[i - run] != -sg[i]:
+            why.append(f"not a fresh cross (price on this side of the EMA21 for {run} candles, limit {g['fresh']})")
+    if g["rsi"] and i >= 10:
+        if side > 0 and (r[i] <= r[i - 3] or r[i] <= r[i - 10:i].min()):
+            why.append(f"RSI not rising for a buy (RSI {r[i]:.0f}, {r[i - 3]:.0f} three candles ago)")
+        if side < 0 and (r[i] >= r[i - 3] or r[i] >= r[i - 10:i].max()):
+            why.append(f"RSI not falling for a sell (RSI {r[i]:.0f}, {r[i - 3]:.0f} three candles ago)")
+    if g["trend"]:
+        st_, nxt = htf_state(ind, tf, opened)
+        if st_ and side * st_ < 0:
+            why.append(f"against the {nxt} trend ({'bearish' if st_ < 0 else 'bullish'})")
+    return g, why
+
+
 def htf_view(ind, t, side):
     parts = []
     for tf in ("1h", "4h"):
@@ -198,6 +273,7 @@ def main():
     ap.add_argument("--books")
     ap.add_argument("--scan")
     ap.add_argument("--scan-tf", default="15min")
+    ap.add_argument("--gates", action="store_true", help="list every trade with a verdict: would the new rules (chop 58.5, fresh cross, RSI direction, trend gate, oversized candle) have blocked it?")
     ap.add_argument("--data", default="/app/data")
     ap.add_argument("--glob", default="journal*.sqlite")
     a = ap.parse_args()
@@ -226,6 +302,37 @@ def main():
     out = [f"# Context for {sym} - generated {now:%Y-%m-%d %H:%M} New York\n",
            "Candles are labelled by their OPEN time, like TradingView. The **signal candle** is the one that closed when the bot "
            "entered; the trade opened at the open of the next candle. Prices are OANDA mid prices.\n"]
+    if a.gates:
+        rows, tot = [], dict(n=0, blocked=0, rb=0.0, rk=0.0, nb=0, nk=0, untouched=0)
+        for t in sorted(trades, key=lambda t: parse(t["opened"])):
+            book, side = t["book"], 1 if t["side"] == "LONG" else -1
+            tf = book_tf(book)
+            b = ind.get(tf)
+            if b is None:
+                continue
+            opened = parse(t["opened"])
+            i = last_done(b, tf, opened)
+            g, why = verdict(book, sym, b, i, side, tf, ind, opened)
+            rr = t["r_multiple"]
+            res = "open" if rr is None else f"{rr:+.2f}R"
+            if g is None:
+                tot["untouched"] += 1
+                v = "not covered"
+            else:
+                tot["n"] += 1
+                if why:
+                    tot["blocked"] += 1; tot["nb"] += rr is not None; tot["rb"] += rr or 0.0
+                else:
+                    tot["nk"] += rr is not None; tot["rk"] += rr or 0.0
+                v = "**BLOCKED**" if why else "kept"
+            rows.append(f"| {opened:%m-%d %H:%M} | {book} | {t['side'].lower()} | {res} | {t['exit_reason'] or ''} | {v} | {'; '.join(why) if why else (g or {}).get('note', '') if g else ''} |")
+        out.append(f"\n## Gate check for {sym}: would the new rules have blocked these trades?\n")
+        out.append("Applied with each book's installed settings (15m/1h books: chop 58.5 + fresh cross + RSI direction + trend gate; 4h: chop + trend gate + oversized "
+                   "candle; daily: chop only; his EMA21+RSI55 book: chop only). 'not covered' = Playbook, Practice, momentum and other books the rules do not touch.\n")
+        out.append("| Opened (NY) | Book | Side | Result | How it ended | Verdict | Reasons |\n|---|---|---|---|---|---|---|\n" + "\n".join(rows))
+        out.append(f"\n**Summary {sym}:** {tot['n']} EMA/RSI trades checked, **{tot['blocked']} blocked**, {tot['n'] - tot['blocked']} kept; "
+                   f"closed R of the blocked ones {tot['rb']:+.2f}R ({tot['nb']} closed), of the kept ones {tot['rk']:+.2f}R ({tot['nk']} closed); "
+                   f"{tot['untouched']} trades from books the rules do not touch.\n")
     for t in trades:
         book, side = t["book"], 1 if t["side"] == "LONG" else -1
         tf = book_tf(book)
