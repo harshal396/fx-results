@@ -1,0 +1,42 @@
+ Container fx-agents-fxagents-run-c599ebdf4850 Creating 
+ Container fx-agents-fxagents-run-c599ebdf4850 Created 
+fetching XAUUSD ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min manual: done
+  XAUUSD 1h manual: done
+  XAUUSD 4h manual: done
+fetching NDQ ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min manual: done
+  NDQ 1h manual: done
+  NDQ 4h manual: done
+fetching US30 ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min manual: done
+  US30 1h manual: done
+  US30 4h manual: done
+fetching SPX500 ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min manual: done
+  SPX500 1h manual: done
+  SPX500 4h manual: done
+fetching XAGUSD ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min manual: done
+  XAGUSD 1h manual: done
+  XAGUSD 4h manual: done
+fetching DE30 ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min manual: done
+  DE30 1h manual: done
+  DE30 4h manual: done
+fetching EURUSD ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min manual: done
+  EURUSD 1h manual: done
+  EURUSD 4h manual: done
+fetching USDJPY ...
+<stdin>:348: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  USDJPY 15min manual: done
+  USDJPY 1h manual: done
+  USDJPY 4h manual: done
