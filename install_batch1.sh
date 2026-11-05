@@ -4,7 +4,7 @@
 #   (3) the full-screen trade chart gets 4h, 1D and 1W buttons (candles from OANDA through a new read-only /api/tfbars route).
 # Run:  bash ~/install_batch1.sh        Check only (changes nothing):  DRY=1 bash ~/install_batch1.sh
 # It replaces ~/apply_my_hooks.py and ~/auto_update.sh (backups are kept), adds 4 new files, runs the hook script, and fixes the
-# "retired books" list in tests/test_my_books.py. It changes nothing unless ALL of these hold, in order:
+# "retired books" list and one config test in tests/test_my_books.py. It changes nothing unless ALL of these hold, in order:
 #   1. you are on main with no uncommitted changes, no update is running, and the files look as expected
 #   2. the image builds and the FULL test suite passes in a throwaway container (the running bot is untouched until now)
 #   3. the restarted bot answers /healthz and keeps answering 45 s later
@@ -785,10 +785,16 @@ cp "$T/apply_my_hooks.py" "$HOOKS"
 python3 "$HOOKS" >"$T/hooks.out" 2>&1 || { tail -5 "$T/hooks.out"; fail "apply_my_hooks.py failed"; }
 python3 - <<'PY' || fail "could not update the retired list in tests/test_my_books.py"
 p = "tests/test_my_books.py"; s = open(p, encoding="utf-8").read()
-old = 'RETIRED = {"my_rsi_15m"}'
-new = 'RETIRED = {"my_rsi_15m", "my_ema_cross_15m", "my_ema_cross_1h", "my_ema_cross_4h", "my_ema_cross_1d"}'
-assert s.count(old) == 1
-open(p, "w", encoding="utf-8").write(s.replace(old, new))
+edits = (('RETIRED = {"my_rsi_15m"}', 'RETIRED = {"my_rsi_15m", "my_ema_cross_15m", "my_ema_cross_1h", "my_ema_cross_4h", "my_ema_cross_1d"}'),
+         # the config test that pins the per-timeframe settings must no longer look for the removed books' config blocks
+         ('for b in ("my_ema_rsi_15m", "my_ema_cross_15m", "my_ema_rsi_1h", "my_rsi_1h", "my_ema_cross_1h"):', 'for b in ("my_ema_rsi_15m", "my_ema_rsi_1h", "my_rsi_1h"):'),
+         ('for b in ("my_ema_rsi_4h", "my_rsi_4h", "my_ema_cross_4h"):', 'for b in ("my_ema_rsi_4h", "my_rsi_4h"):'),
+         ('for b in ("my_ema_rsi_1d", "my_ema_cross_1d"):', 'for b in ("my_ema_rsi_1d",):'),
+         ('for b in ("my_ema_rsi_15m", "my_ema_cross_15m"):\n        assert sh[b]["symbols"]', 'for b in ("my_ema_rsi_15m",):\n        assert sh[b]["symbols"]'))
+for old, new in edits:
+    assert s.count(old) == 1, old[:60]
+    s = s.replace(old, new)
+open(p, "w", encoding="utf-8").write(s)
 PY
 grep -q _install_tfbars fxagents/dashboard/server.py || fail "the chart hook did not reach server.py"
 grep -q mytf.js fxagents/dashboard/static/index.html || fail "the chart hook did not reach index.html"
