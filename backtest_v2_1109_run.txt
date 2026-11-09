@@ -1,0 +1,130 @@
+ Container fx-agents-fxagents-run-4a50c4653fee Creating 
+ Container fx-agents-fxagents-run-4a50c4653fee Created 
+fetching XAUUSD ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAUUSD 15min random entries: done
+  XAUUSD 1h ema_rsi: done
+  XAUUSD 1h pullback21: done
+  XAUUSD 1h random entries: done
+  XAUUSD 4h ema_rsi: done
+  XAUUSD 4h pullback21: done
+  XAUUSD 4h random entries: done
+  XAUUSD 1D ema_rsi: done
+  XAUUSD 1D pullback21: done
+  XAUUSD 1D random entries: done
+fetching NDQ ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  NDQ 15min random entries: done
+  NDQ 1h ema_rsi: done
+  NDQ 1h pullback21: done
+  NDQ 1h random entries: done
+  NDQ 4h ema_rsi: done
+  NDQ 4h pullback21: done
+  NDQ 4h random entries: done
+  NDQ 1D ema_rsi: done
+  NDQ 1D pullback21: done
+  NDQ 1D random entries: done
+fetching US30 ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US30 15min random entries: done
+  US30 1h ema_rsi: done
+  US30 1h pullback21: done
+  US30 1h random entries: done
+  US30 4h ema_rsi: done
+  US30 4h pullback21: done
+  US30 4h random entries: done
+  US30 1D ema_rsi: done
+  US30 1D pullback21: done
+  US30 1D random entries: done
+fetching US2000 ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US2000 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US2000 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  US2000 15min random entries: done
+  US2000 1h ema_rsi: done
+  US2000 1h pullback21: done
+  US2000 1h random entries: done
+  US2000 4h ema_rsi: done
+  US2000 4h pullback21: done
+  US2000 4h random entries: done
+  US2000 1D ema_rsi: done
+  US2000 1D pullback21: done
+  US2000 1D random entries: done
+fetching SPX500 ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  SPX500 15min random entries: done
+  SPX500 1h ema_rsi: done
+  SPX500 1h pullback21: done
+  SPX500 1h random entries: done
+  SPX500 4h ema_rsi: done
+  SPX500 4h pullback21: done
+  SPX500 4h random entries: done
+  SPX500 1D ema_rsi: done
+  SPX500 1D pullback21: done
+  SPX500 1D random entries: done
+fetching XAGUSD ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  XAGUSD 15min random entries: done
+  XAGUSD 1h ema_rsi: done
+  XAGUSD 1h pullback21: done
+  XAGUSD 1h random entries: done
+  XAGUSD 4h ema_rsi: done
+  XAGUSD 4h pullback21: done
+  XAGUSD 4h random entries: done
+  XAGUSD 1D ema_rsi: done
+  XAGUSD 1D pullback21: done
+  XAGUSD 1D random entries: done
+fetching EURUSD ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  EURUSD 15min random entries: done
+  EURUSD 1h ema_rsi: done
+  EURUSD 1h pullback21: done
+  EURUSD 1h random entries: done
+  EURUSD 4h ema_rsi: done
+  EURUSD 4h pullback21: done
+  EURUSD 4h random entries: done
+  EURUSD 1D ema_rsi: done
+  EURUSD 1D pullback21: done
+  EURUSD 1D random entries: done
+fetching DE30 ...
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min ema_rsi: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min pullback21: done
+<stdin>:417: Pandas4Warning: Timestamp.dayofweek is deprecated and will be removed in a future version. Use Timestamp.day_of_week instead.
+  DE30 15min random entries: done
+  DE30 1h ema_rsi: done
+  DE30 1h pullback21: done
+  DE30 1h random entries: done
+  DE30 4h ema_rsi: done
+  DE30 4h pullback21: done
+  DE30 4h random entries: done
+  DE30 1D ema_rsi: done
+  DE30 1D pullback21: done
+  DE30 1D random entries: done
