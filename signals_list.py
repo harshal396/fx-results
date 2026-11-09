@@ -2,7 +2,7 @@
 """Every signal the RSI / EMA books saw, one line each: time, book, market, side, price, what happened and why.
 Read-only, standard library only. Run it INSIDE the bot's container (the journals live there):
   docker compose exec -T fxagents python - --since "2026-11-02 00:00" < ~/signals_list.py > ~/fx-results/signals_1102.md
-Options:  --since "YYYY-MM-DD HH:MM" (New York time; default: 24 h back)   --hours N
+Options:  --since "YYYY-MM-DD HH:MM" (New York time; default: 24 h back)   --until "YYYY-MM-DD HH:MM" (default: now)   --hours N
           --books auto|a,b   (auto = default: every my_* book except my_intraday_mom, plus ema21_rsi55; removed books such as my_ema_cross_* are included)
           --symbols XAUUSD,NDQ,US30,US2000 (default)   --actions rejected (default)  or  all  or  rejected,taken
           --data DIR (default /app/data)   --glob PATTERN (default journal*.sqlite)
@@ -31,6 +31,7 @@ def parse(s):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--since")
+    ap.add_argument("--until")
     ap.add_argument("--hours", type=float, default=24)
     ap.add_argument("--books", default="auto")
     ap.add_argument("--symbols", default="XAUUSD,NDQ,US30,US2000")
@@ -40,12 +41,13 @@ def main():
     a = ap.parse_args()
     now = datetime.now(NY)
     cutoff = parse(a.since) if a.since else now - timedelta(hours=a.hours)
+    until = parse(a.until) if a.until else None
     prefix = a.glob.split("*")[0]
     books = None if a.books == "auto" else set(a.books.split(","))
     syms = set(a.symbols.split(","))
     acts = None if a.actions == "all" else set(a.actions.split(","))
     out = [f"# Signals seen by {'the my_* RSI / EMA books and ema21_rsi55' if books is None else ', '.join(sorted(books))}\n", f"Generated {now:%Y-%m-%d %H:%M} New York. Since {cutoff:%Y-%m-%d %H:%M}. "
-           f"Markets: {', '.join(sorted(syms))}. Actions: {a.actions}.\n",
+           f"{'Until ' + format(until, '%Y-%m-%d %H:%M') + '. ' if until else ''}Markets: {', '.join(sorted(syms))}. Actions: {a.actions}.\n",
            "| Time (NY) | Book | Market | Side | Price | What happened | Why |", "|---|---|---|---|---|---|---|"]
     rows, seen = [], []
     for f in sorted(glob.glob(os.path.join(a.data, a.glob))):
@@ -60,7 +62,7 @@ def main():
         try:
             for ts, sym, side, entry, action, why in db.execute("SELECT ts, symbol, side, entry, action, why FROM signals ORDER BY id"):
                 t = parse(ts)
-                if t and t >= cutoff and sym in syms and (acts is None or action in acts):
+                if t and t >= cutoff and (until is None or t <= until) and sym in syms and (acts is None or action in acts):
                     rows.append((t, book, sym, side, entry, action, (why or "").replace("|", "/")))
         except sqlite3.Error as ex:
             out.append(f"\n(could not read {book}: {ex})")
